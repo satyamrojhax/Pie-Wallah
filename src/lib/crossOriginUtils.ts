@@ -1,41 +1,32 @@
-// Cross-origin video utilities
+// Utility functions for handling cross-origin video playback
 
-export const isCrossOriginDomain = (url: string): boolean => {
-    try {
-        const urlObj = new URL(url);
-        return urlObj.hostname !== window.location.hostname;
-    } catch {
-        return false;
-    }
-};
-
-export const addCrossOriginAttributes = (videoElement: HTMLVideoElement) => {
-    // Add cross-origin attributes for video playback across domains
+export function addCrossOriginAttributes(videoElement: HTMLVideoElement): void {
     videoElement.crossOrigin = 'anonymous';
-    videoElement.setAttribute('playsinline', '');
-    videoElement.setAttribute('webkit-playsinline', 'true');
-    videoElement.setAttribute('x-webkit-airplay', 'allow');
-    
-    // Add preload attribute for better performance
-    videoElement.preload = 'metadata';
-};
+    videoElement.setAttribute('crossorigin', 'anonymous');
+}
 
-export const handleCrossOriginError = (error: Error, videoUrl: string) => {
-    // Cross-origin video error handling
+export function handleCrossOriginError(error: Error, url: string): void {
+    console.error('Cross-origin error detected:', error.message);
+    console.log('URL that failed:', url);
     
-    // Check if it's a CORS error
+    // Check if it's a cross-origin error
     if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
-        // CORS error detected
+        console.warn('This appears to be a CORS issue. The video server may need to allow cross-origin requests.');
     }
-    
-    // Check if it's a network error
-    if (error.message.includes('network') || error.message.includes('fetch')) {
-        // Network error detected
-    }
-};
+}
 
-export const createCrossOriginVideoUrl = (originalUrl: string): string => {
-    // Add timestamp to prevent caching issues
-    const separator = originalUrl.includes('?') ? '&' : '?';
-    return `${originalUrl}${separator}_t=${Date.now()}`;
-};
+export function createCrossOriginVideoUrl(url: string): string {
+    try {
+        const urlObj = new URL(url, window.location.href);
+        
+        // Add timestamp to prevent caching issues
+        const timestamp = Date.now();
+        const separator = urlObj.search ? '&' : '?';
+        urlObj.search += `${separator}_t=${timestamp}`;
+        
+        return urlObj.toString();
+    } catch (error) {
+        console.warn('Failed to create cross-origin URL:', error);
+        return url;
+    }
+}

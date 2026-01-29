@@ -107,8 +107,6 @@ const internalFetch = async (url: string, options?: RequestInit): Promise<Respon
   return safeFetch(fullUrl, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
       'Accept-Encoding': 'gzip, deflate, br', // Enable compression
       ...options?.headers,
     },

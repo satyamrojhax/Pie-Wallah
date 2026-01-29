@@ -73,7 +73,7 @@ const OtpVerification = () => {
         try {
             await resendOtp(mobileNumber);
             toast.success("OTP Resent via SMS!");
-            setResendTimer(10);
+            setResendTimer(20);
         } catch (error) {
             toast.error("Failed to resend OTP");
         } finally {
@@ -88,7 +88,7 @@ const OtpVerification = () => {
         try {
             await sendWhatsAppOtp(mobileNumber);
             toast.success("OTP Sent via WhatsApp!");
-            setResendTimer(10);
+            setResendTimer(30);
         } catch (error) {
             toast.error("Failed to send WhatsApp OTP");
         } finally {
@@ -103,7 +103,7 @@ const OtpVerification = () => {
         try {
             await sendCallOtp(mobileNumber);
             toast.success("OTP Sent via Call!");
-            setResendTimer(10);
+            setResendTimer(50);
         } catch (error) {
             toast.error("Failed to send OTP via Call");
         } finally {

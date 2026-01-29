@@ -275,10 +275,11 @@ const BatchDetails = () => {
   });
 
   const { data: faqResponse, isLoading: isFaqsLoading } = useQuery<{ success: boolean, data: FAQ[] } | null>({
-    queryKey: ["faqs"],
+    queryKey: ["faqs", batchId],
     queryFn: async () => {
-      return await fetchFAQs();
+      return await fetchFAQs(batchId);
     },
+    enabled: !!batchId, // Only fetch when batchId is available
   });
 
   const faqs = faqResponse?.data || [];

@@ -1,13 +1,18 @@
 import { getApiUrl, safeFetch } from '../lib/apiConfig';
+import { getCommonHeaders } from '@/lib/auth';
 
 export type Topic = {
   _id: string;
   name: string;
   slug?: string;
   description?: string;
+  type?: string;
+  typeId?: string;
+  displayOrder?: number;
   lectureVideos?: number | unknown[];
   notes?: number | unknown[];
   exercises?: number | unknown[];
+  videos?: number | unknown[];
   DppVideos?: number | unknown[];
   DppNotes?: number | unknown[];
   icon?: string;
@@ -43,23 +48,13 @@ export const fetchTopicsChunked = async (batchId: string, subjectId: string, pag
   page: number;
 }> => {
   try {
-    const token = localStorage.getItem('param_auth_token');
-    if (!token) {
-      throw new Error("Authentication required - Please login first");
-    }
+    // Use the correct PenPencil API endpoint
+    const url = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectId}/topics?page=${page}`;
 
-    const url = getApiUrl(`/topics`, {
-      batchId,
-      subjectId,
-      page: page.toString(),
-      limit: limit.toString()
-    });
-
+    const headers = getCommonHeaders();
     const response = await safeFetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      method: 'GET',
+      headers: headers
     });
     
     if (!response.ok) {

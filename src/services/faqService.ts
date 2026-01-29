@@ -1,4 +1,5 @@
 import { getAuthToken, getCommonHeaders } from "@/lib/auth";
+import { safeFetch } from "@/lib/apiConfig";
 
 const FAQ_API_BASE = "https://api.penpencil.co";
 
@@ -25,22 +26,38 @@ export interface FAQResponse {
   };
 }
 
-// Fetch FAQs for a specific category
-export const fetchFAQs = async (categoryId: string = "68ad9b038a0ac4125954148a"): Promise<FAQResponse> => {
+// Fetch FAQs for a specific batch
+export const fetchFAQs = async (batchId: string): Promise<FAQResponse> => {
   try {
     const token = getAuthToken();
     if (!token) {
       throw new Error("Authentication required");
     }
 
-    const response = await fetch(
-      `${FAQ_API_BASE}/v1/faq-category/${categoryId}/list`,
-      {
-        headers: {
-          ...getCommonHeaders(),
-          "authorization": `Bearer ${token}`,
-        },
-      }
+    if (!batchId) {
+      throw new Error("Batch ID is required");
+    }
+
+    // Fetch batch details to get FAQ category
+    const batchResponse = await safeFetch(
+      `https://api.penpencil.co/v3/batches/${batchId}/details?type=EXPLORE_LEAD`
+    );
+    
+    if (!batchResponse.ok) {
+      throw new Error("Failed to fetch batch details for FAQ category");
+    }
+    
+    const batchData = await batchResponse.json();
+    
+    // Extract FAQ category ID from batch data
+    const categoryId = batchData.data?.faqCat;
+    
+    if (!categoryId) {
+      throw new Error("No FAQ category found for this batch");
+    }
+
+    const response = await safeFetch(
+      `${FAQ_API_BASE}/v1/faq-category/${categoryId}/list`
     );
 
     if (!response.ok) {

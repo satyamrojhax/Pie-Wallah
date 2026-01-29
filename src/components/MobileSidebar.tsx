@@ -69,9 +69,9 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({ hasEnrolledBatches = fals
             <Grid3x3 className="h-4.5 w-4.5 transition-transform duration-300 hover:rotate-90" />
           </Button>
         </SheetTrigger>
-          <SheetContent side="left" className="w-80 p-0 bg-background/95 backdrop-blur-xl border-border/50 z-[60] transition-all duration-300">
+          <SheetContent side="left" className="w-80 max-w-[85vw] p-0 bg-background/95 backdrop-blur-xl border-border/50 z-[60] transition-all duration-300 flex flex-col h-full">
             {/* Sidebar Header */}
-            <div className="p-6 pb-4 border-b border-border/30">
+            <div className="p-6 pb-4 border-b border-border/30 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <img
                   src="/logo.png"
@@ -85,7 +85,7 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({ hasEnrolledBatches = fals
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 min-h-0">
               <nav className="space-y-2">
                 {filteredNavLinks.map((link, index) => (
                   <div
@@ -114,7 +114,7 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({ hasEnrolledBatches = fals
             </div>
 
             {/* Sidebar Footer */}
-            <div className="p-6 border-t border-border/30">
+            <div className="p-6 border-t border-border/30 flex-shrink-0">
               {/* Social Media Links */}
               <div className="mb-4">
                 <h3 className="text-sm font-medium text-foreground mb-3 transition-colors duration-300">Connect With Us</h3>

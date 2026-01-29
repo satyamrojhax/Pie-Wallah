@@ -1,73 +1,191 @@
-# Welcome to your Lovable project
+# Pie Wallah - Educational Platform
 
-## Project info
+## Project Overview
 
-**URL**: https://lovable.dev/projects/6458c69a-3907-48f7-a32d-a9cfa9d9c661
+Pie Wallah is a modern educational platform built with React, TypeScript, and Tailwind CSS. It provides students with access to video lectures, study materials, notes, and interactive learning features.
 
-## How can I edit this code?
+**Key Features:**
+- 🎥 Advanced video player with Shaka Player integration
+- 📚 Comprehensive study materials and notes
+- 📅 Interactive schedule and timeline
+- 📱 Fully responsive mobile design
+- 🔐 Secure authentication system
+- 🎯 Topic-wise content organization
 
-There are several ways of editing your application.
+## Development Setup
 
-**Use Lovable**
+**Prerequisites**
+- Node.js (v18 or higher)
+- npm or yarn package manager
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6458c69a-3907-48f7-a32d-a9cfa9d9c661) and start prompting.
+**Local Development**
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Follow these steps to set up the project locally:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Step 1: Clone the repository
+git clone https://github.com/your-username/piewallah.git
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Step 2: Navigate to the project directory
+cd piewallah
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Step 3: Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Start the development server
 npm run dev
+
+# Step 5: Open your browser and navigate to http://localhost:5173
 ```
 
-**Edit a file directly in GitHub**
+**Available Scripts**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run preview  # Preview production build
+npm run lint     # Run ESLint
+npm run type-check # Run TypeScript type checking
+```
 
-**Use GitHub Codespaces**
+## Technology Stack
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+This project is built with modern web technologies:
 
-## What technologies are used for this project?
+### Frontend Framework
+- **React 18** - UI framework with hooks and concurrent features
+- **TypeScript** - Type-safe JavaScript for better development experience
+- **Vite** - Fast build tool and development server
 
-This project is built with:
+### UI & Styling
+- **Tailwind CSS** - Utility-first CSS framework
+- **shadcn/ui** - Modern, accessible UI components
+- **Radix UI** - Low-level UI primitives
+- **Lucide React** - Beautiful icon library
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Video & Media
+- **Shaka Player** - Advanced video player with DRM support
+- **HLS.js** - HTTP Live Streaming support
+- **Cross-origin utilities** - Secure video playback
 
-## How can I deploy this project?
+### State Management & Data
+- **React Query (TanStack Query)** - Server state management
+- **React Router** - Client-side routing
+- **Axios** - HTTP client with interceptors
 
-Simply open [Lovable](https://lovable.dev/projects/6458c69a-3907-48f7-a32d-a9cfa9d9c661) and click on Share -> Publish.
+### Development Tools
+- **ESLint** - Code linting and formatting
+- **Prettier** - Code formatting
+- **PostCSS** - CSS processing
+- **Autoprefixer** - CSS vendor prefixes
 
-## Can I connect a custom domain to my Lovable project?
+## Project Structure
 
-Yes, you can!
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn/ui components
+│   ├── ShakaPlayer.tsx # Video player component
+│   └── MobileSidebar.tsx # Mobile navigation
+├── pages/              # Page components
+│   ├── VideoPlayer.tsx # Main video player page
+│   ├── Study.tsx       # Study materials page
+│   └── TopicDetails.tsx # Topic details page
+├── services/           # API service functions
+│   ├── contentService.ts # Content API calls
+│   ├── topicService.ts   # Topic API calls
+│   └── batchService.ts   # Batch API calls
+├── lib/                # Utility libraries
+│   ├── apiConfig.ts    # API configuration
+│   ├── auth.ts         # Authentication utilities
+│   └── utils.ts        # General utilities
+├── hooks/              # Custom React hooks
+│   └── use-toast.ts    # Toast notifications
+└── types/              # TypeScript type definitions
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Deployment
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Production Build
+
+```sh
+# Build the project for production
+npm run build
+
+# Preview the production build locally
+npm run preview
+```
+
+### Environment Variables
+
+Create environment variables for your deployment:
+
+```env
+# API Configuration (Contact development team for values)
+VITE_API_BASE_URL=your_api_base_url
+VITE_VIDEO_API_BASE_URL=your_video_api_base_url
+VITE_VIDEO_API_PROXY_BASE_URL=your_proxy_base_url
+
+# Application (Optional)
+VITE_APP_NAME=Pie Wallah
+VITE_APP_VERSION=1.0.0
+```
+
+### Deployment Platforms
+
+**Vercel (Recommended)**
+- Connect your GitHub repository to Vercel
+- Set environment variables in Vercel dashboard
+- Automatic deployments on push to main branch
+
+**Netlify**
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Set environment variables in Netlify dashboard
+
+**Docker**
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "run", "preview"]
+```
+
+## API Integration
+
+### Authentication
+The application uses secure token-based authentication with proper header management. All API requests are handled through secure service layers with built-in authentication.
+
+### Security Features
+- Token-based authentication system
+- Secure header management
+- CORS protection
+- Rate limiting support
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For support and inquiries:
+- **Developer**: Satyam RojhaX
+- **Email**: epowerxlabs@gmail.com
+- **Website**: https://piewallah.vercel.app/
+- **Social**: [@satyamrojhax](https://instagram.com/satyamrojha.dev)
+
+---
+
+Built with ❤️ by [Satyam RojhaX](https://instagram.com/satyamrojha.dev)

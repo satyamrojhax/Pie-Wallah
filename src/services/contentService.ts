@@ -1,4 +1,5 @@
 import { getApiUrl, getAttachmentsApiUrl, safeFetch } from '../lib/apiConfig';
+import { getCommonHeaders } from '@/lib/auth';
 
 const API_BASE = "contents";
 
@@ -46,19 +47,43 @@ const internalFetch = async (url: string, useAttachmentsApi: boolean = false): P
 };
 
 export const fetchLectures = async (batchId: string, subjectSlug: string, topicId: string, page: number = 1) => {
-  const response = await internalFetch(
-    `${API_BASE}?batchId=${batchId}&subjectId=${subjectSlug}&tag=${topicId}&contentType=videos&page=${page}`
-  );
+  // Use the correct PenPencil API endpoint
+  const url = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectSlug}/contents?page=${page}&contentType=videos&tag=${topicId}`;
+  
+  const headers = getCommonHeaders();
+  const response = await safeFetch(url, {
+    method: 'GET',
+    headers: headers
+  });
   if (!response.ok) throw new Error("Unable to load video lectures");
   const json: ContentResponse = await response.json();
   return json;
 };
 
 export const fetchNotes = async (batchId: string, subjectSlug: string, topicId: string, page: number = 1) => {
-  const response = await internalFetch(
-    `${API_BASE}?batchId=${batchId}&subjectId=${subjectSlug}&tag=${topicId}&contentType=notes&page=${page}`
-  );
+  // Use the correct PenPencil API endpoint
+  const url = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectSlug}/contents?page=${page}&contentType=notes&tag=${topicId}`;
+  
+  const headers = getCommonHeaders();
+  const response = await safeFetch(url, {
+    method: 'GET',
+    headers: headers
+  });
   if (!response.ok) throw new Error("Unable to load study notes");
+  const json: ContentResponse = await response.json();
+  return json;
+};
+
+export const fetchDPPNotes = async (batchId: string, subjectSlug: string, topicId: string, page: number = 1) => {
+  // Use the correct PenPencil API endpoint for DPP notes
+  const url = `https://api.penpencil.co/v2/batches/${batchId}/subject/${subjectSlug}/contents?page=${page}&contentType=DppNotes&tag=${topicId}`;
+  
+  const headers = getCommonHeaders();
+  const response = await safeFetch(url, {
+    method: 'GET',
+    headers: headers
+  });
+  if (!response.ok) throw new Error("Unable to load DPP notes");
   const json: ContentResponse = await response.json();
   return json;
 };
@@ -66,19 +91,17 @@ export const fetchNotes = async (batchId: string, subjectSlug: string, topicId: 
 export const fetchScheduleDetails = async (batchId: string, subjectSlug: string, scheduleId: string) => {
   if (!batchId || !subjectSlug || !scheduleId) return null;
   try {
-    const response = await internalFetch(`/schedule-details?batchId=${batchId}&subjectId=${subjectSlug}&scheduleId=${scheduleId}`);
+    // Use the correct PenPencil API endpoint
+    const url = `https://api.penpencil.co/v1/batches/${batchId}/subject/${subjectSlug}/schedule/${scheduleId}/schedule-details`;
+    
+    const headers = getCommonHeaders();
+    const response = await safeFetch(url, {
+      method: 'GET',
+      headers: headers
+    });
     if (!response.ok) return null;
     const json = await response.json();
     const data = json.data || null;
-    
-    // Extract DPP content if available
-    if (data && data.dpp) {
-      return {
-        ...data,
-        // Extract DPP homework items for easier processing
-        dppHomeworks: data.dpp.homeworkIds || []
-      };
-    }
     
     return data;
   } catch {

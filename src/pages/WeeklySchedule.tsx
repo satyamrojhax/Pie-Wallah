@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
-import { getApiUrl, safeFetch } from '../lib/apiConfig';
+import { useLocation, useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { getApiUrl, safeFetch } from '../lib/apiConfig';
+import { getVideoStreamUrl } from '../services/videoService';
 import Navbar from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,12 +23,14 @@ export type ScheduleItem = {
   _id: string;
   topic: string;
   subject?: string;
+  subjectId?: string;
+  subjectName?: string;
   batchId: string;
   batchName?: string;
   teacherName?: string;
   startTime: string;
   endTime?: string;
-  status?: "live" | "upcoming" | "completed";
+  status?: "live" | "upcoming" | "completed" | string;
   meetingUrl?: string;
   recordingUrl?: string;
   platform?: string;
@@ -37,18 +40,96 @@ export type ScheduleItem = {
   lectureType?: string;
   parentScheduleId?: string;
   scheduleIds?: string[];
+  type?: "LECTURE" | "NOTES" | "DPP_QUIZ" | "DPP_PDF" | "BULK_SCHEDULE";
+  // API response structures
   videoDetails?: {
     _id: string;
-    id: string;
-    name: string;
-    image: string;
-    videoUrl: string;
-    description: string;
-    duration: string;
+    dppCount: number;
+    startTime: string;
+    endTime: string;
+    restrictedSchedule: boolean;
+    restrictedTime: number;
+    batchSubjectId: string;
+    date: string;
+    teachers: string[];
+    urlType: string;
+    url: string;
+    exerciseIds: any[];
+    homeworkIds: any[];
+    topic: string;
+    isFree: boolean;
+    scheduleCode: string;
+    lectureType: string;
+    scheduleType: string;
+    lowDataMode: boolean;
+    slug: string;
     status: string;
-    types: string[];
-    findKey?: string;
+    chapterId: string;
+    isBatchDoubtEnabled: boolean;
+    day: number;
+    videoDetails?: {
+      _id: string;
+      id: string;
+      name: string;
+      image: string;
+      videoUrl: string;
+      description: string;
+      duration: string;
+      status: string;
+      types: string[];
+      createdAt: string;
+      drmProtected: boolean;
+      isZipDownloadEnabled: boolean;
+      findKey: string;
+      embedCode: string;
+      video_id: string;
+      vimeoId: string;
+      hls_url: string;
+    };
+    subjectId: {
+      _id: string;
+      name: string;
+      slug: string;
+    };
+    tag: string;
+    tags: any[];
+    videoAnalytics: any;
+    isSingleScheduling: boolean;
+    isVideoLecture: boolean;
+    hasAttachment: boolean;
+    isDPPVideos: boolean;
+    isDPPNotes: boolean;
+    batchId: string;
+    previewImageUrl: string;
+    previewImageUrlMWeb: string;
+    dppScheduleId: string;
+    isParentSchedule: boolean;
+    classActiveTime: string;
+    classEndTime: string;
+    meetingId: string;
+    zoomCohostId: string[];
+    zoomHostId: string[];
+    isChatEnabled: boolean;
+    timeline: any[];
+    contentType: any[];
+    conversationId: string;
+    isPathshala: boolean;
+    isDoubtEnabled: boolean;
+    isCopilotEnabled: boolean;
+    isCopilotDoubtAllocationEnabled: boolean;
+    isCommentDisabled: boolean;
+    isShareable: boolean;
+    uWebSocketEnabled: boolean;
+    isSimulatedLecture: boolean;
+    hinglishScheduleId: string;
+    classTeaserUrl: string;
+    videoContentId: string;
+    teacherImage: string;
   };
+  notesDetails?: any;
+  dppQuizDetails?: any;
+  dppPDFDetails?: any;
+  bulkScheduleDetails?: any;
   homeworkIds?: Array<{
     _id?: string;
     topic?: string;
@@ -89,8 +170,7 @@ const fetchWeeklySchedules = async (batchId: string, startDate: string, endDate:
 
   try {
     const subjectId = batchSubjectId || '';
-    const url = getApiUrl(`/weekly-schedules`, {
-      batchId,
+    const url = getApiUrl(`/v2/batches/${batchId}/weekly-schedules`, {
       batchSubjectId: subjectId,
       startDate,
       endDate,
@@ -117,20 +197,46 @@ const fetchWeeklySchedules = async (batchId: string, startDate: string, endDate:
     const data: BatchScheduleResponse = await response.json();
     const items = data.data || data.schedule || [];
     
-    return items.map((item) => ({
-      ...item,
-      batchId,
-      image: (item as any).videoDetails?.image ||
-        (item as any).previewImageUrl ||
-        (item as any).previewImageUrlMWeb ||
-        (item as any).image ||
-        (item as any).thumbnail ||
-        (item as any).imageUrl ||
-        "https://static.pw.live/5eb393ee95fab7468a79d189/9ef3bea0-6eed-46a8-b148-4a35dd6b3b61.png",
-      subject: (item as any).subjectId?.name || (item as any).subject,
-      startTime: (item as any).startTime || (item as any).start_time,
-      endTime: (item as any).endTime || (item as any).end_time,
-    }));
+    return items.map((item) => {
+      // Extract the correct nested object based on type
+      let details: any = {};
+      if (item.type === 'LECTURE' && item.videoDetails) {
+        details = item.videoDetails;
+      } else if (item.type === 'NOTES' && item.notesDetails) {
+        details = item.notesDetails;
+      } else if (item.type === 'DPP_QUIZ' && item.dppQuizDetails) {
+        details = item.dppQuizDetails;
+      } else if (item.type === 'DPP_PDF' && item.dppPDFDetails) {
+        details = item.dppPDFDetails;
+      } else if (item.type === 'BULK_SCHEDULE' && item.bulkScheduleDetails) {
+        details = item.bulkScheduleDetails;
+      } else {
+        // Fallback to item itself if no specific type structure
+        details = item;
+      }
+      
+      return {
+        ...item,
+        batchId,
+        startTime: details.startTime || item.startTime,
+        endTime: details.endTime || item.endTime,
+        topic: details.topic || item.topic,
+        subject: details.subjectId?.name || item.subject,
+        subjectId: details.subjectId?._id || item.subjectId || batchSubjectId,
+        subjectName: details.subjectId?.name || item.subject,
+        image: details.videoDetails?.image ||
+          details.previewImageUrl ||
+          details.previewImageUrlMWeb ||
+          details.image ||
+          details.thumbnail ||
+          details.imageUrl ||
+          "https://static.pw.live/5eb393ee95fab7468a79d189/9ef3bea0-6eed-46a8-b148-4a35dd6b3b61.png",
+        status: details.status || item.status,
+        lectureType: details.lectureType || item.lectureType,
+        tag: details.tag || item.tag,
+        homeworkIds: details.homeworkIds || item.homeworkIds,
+      };
+    });
   } catch (error) {
     // Error fetching weekly schedules
     return [];
@@ -253,11 +359,11 @@ const WeeklySchedule = () => {
 
   // Calendar slider navigation functions
   const prevCalendarSlide = () => {
-    setCurrentCalendarIndex((prev) => (prev > 0 ? prev - 1 : calendarDays.length - 1));
+    setCurrentCalendarIndex((prev) => (prev > 0 ? prev - 1 : maxCalendarIndex));
   };
 
   const nextCalendarSlide = () => {
-    setCurrentCalendarIndex((prev) => (prev < calendarDays.length - 1 ? prev + 1 : 0));
+    setCurrentCalendarIndex((prev) => (prev < maxCalendarIndex ? prev + 1 : 0));
   };
 
   // Calculate visible calendar days based on screen size
@@ -284,13 +390,17 @@ const WeeklySchedule = () => {
       grouped[day] = [];
     });
     
-    weeklyScheduleItems.forEach(item => {
-      const itemDate = new Date(item.startTime);
-      const dayName = days[itemDate.getDay() === 0 ? 6 : itemDate.getDay() - 1];
-      if (selectedBatchId === "all" || item.batchId === selectedBatchId) {
-        grouped[dayName].push(item);
-      }
-    });
+    if (weeklyScheduleItems && Array.isArray(weeklyScheduleItems)) {
+      weeklyScheduleItems.forEach(item => {
+        if (item && item.startTime) {
+          const itemDate = new Date(item.startTime);
+          const dayName = days[itemDate.getDay() === 0 ? 6 : itemDate.getDay() - 1];
+          if (selectedBatchId === "all" || item.batchId === selectedBatchId) {
+            grouped[dayName].push(item);
+          }
+        }
+      });
+    }
     
     // Sort items within each day by start time
     Object.keys(grouped).forEach(day => {
@@ -357,6 +467,13 @@ const WeeklySchedule = () => {
 
   const maxCalendarIndex = Math.max(0, calendarDays.length - visibleDaysCount);
 
+  // Reset calendar index when week changes to stay within bounds
+  useMemo(() => {
+    if (currentCalendarIndex > maxCalendarIndex) {
+      setCurrentCalendarIndex(maxCalendarIndex);
+    }
+  }, [maxCalendarIndex, currentCalendarIndex]);
+
   const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
     event.currentTarget.onerror = null;
     event.currentTarget.src = "https://static.pw.live/5eb393ee95fab7468a79d189/9ef3bea0-6eed-46a8-b148-4a35dd6b3b61.png";
@@ -388,6 +505,7 @@ const WeeklySchedule = () => {
     setOpeningMaterialId(item._id);
     try {
       const subjectId = (item as any).subjectId?._id || (item as any).subjectId || (item as any).batchSubjectId || "unknown";
+      const subjectName = (item as any).subjectId?.name || (item as any).subjectName || (item as any).subject || subjectId;
       
       const scheduleDetails = await fetchScheduleDetails(item.batchId, subjectId, item._id);
       
@@ -445,11 +563,13 @@ const WeeklySchedule = () => {
         return;
       }
 
-      const findKey = item.videoDetails?.findKey || item.videoDetails?._id || item._id;
+      const findKey = item.videoDetails?.videoDetails?.findKey || item.videoDetails?.videoDetails?._id || item.videoDetails?._id || item._id;
       const subjectId = (item as any).subjectId?._id || (item as any).subjectId || "unknown";
+      const subjectName = (item as any).subjectId?.name || (item as any).subjectName || subjectId;
 
       if (findKey && item.batchId) {
-        navigate(`/player/${item.batchId}/${subjectId}/${findKey}`);
+        // Navigate to video player page with new URL format
+        navigate(`/watch?piewallah=video&author=satyamrojhax&batchId=${item.batchId}&subjectId=${subjectId}&childId=${findKey}&penpencilvdo=true`);
       } else {
         toast.error("Video details not available");
       }
@@ -513,11 +633,13 @@ const WeeklySchedule = () => {
         return;
       }
 
-      const findKey = item.videoDetails?.findKey || item.videoDetails?._id || item._id;
-      const subjectId = (item as any).subjectId?._id || (item as any).subjectId || "unknown";
+      const findKey = item.videoDetails?.videoDetails?.findKey || item.videoDetails?.videoDetails?._id || item.videoDetails?._id || item._id;
+      const subjectId = (item as any).subjectId?._id || (item as any).subjectId || (item as any).batchSubjectId || "unknown";
+      const subjectName = (item as any).subjectId?.name || (item as any).subjectName || (item as any).subject || subjectId;
 
       if (findKey && item.batchId) {
-        navigate(`/player/${item.batchId}/${subjectId}/${findKey}`);
+        // Navigate to video player page with new URL format
+        navigate(`/watch?piewallah=video&author=satyamrojhax&batchId=${item.batchId}&subjectId=${subjectId}&childId=${findKey}&penpencilvdo=true`);
       } else {
         toast.error("Recording not available yet");
       }
@@ -929,9 +1051,9 @@ const WeeklySchedule = () => {
                               <div className="flex items-center gap-1 sm:gap-2">
                                 <CalendarClock className="h-3 w-3 sm:h-4 sm:w-4 text-primary/80 flex-shrink-0" />
                                 <span className="truncate">{formatTime(item.startTime)}{item.endTime ? ` – ${formatTime(item.endTime)}` : ""}</span>
-                                {(item.duration || item.videoDetails?.duration) && (
+                                {(item.duration || item.videoDetails?.videoDetails?.duration) && (
                                   <span className="ml-auto text-xs bg-muted px-1 sm:px-2 py-0.5 sm:py-1 rounded whitespace-nowrap">
-                                    {item.duration || item.videoDetails?.duration}
+                                    {item.duration || item.videoDetails?.videoDetails?.duration}
                                   </span>
                                 )}
                               </div>
@@ -944,6 +1066,7 @@ const WeeklySchedule = () => {
                             </div>
                             
                             <div className="mt-auto flex flex-col gap-2">
+                              {/* Show View Material button for items with homeworkIds (NOTES, DPP_QUIZ, etc.) */}
                               {item.homeworkIds && item.homeworkIds.length > 0 && (
                                 <Button
                                   variant="outline"
@@ -964,7 +1087,8 @@ const WeeklySchedule = () => {
                                 </Button>
                               )}
 
-                              {(item.videoDetails || item.duration || item.videoDetails?.duration || item.meetingUrl || item.recordingUrl ||
+                              {/* Show video buttons only for LECTURE type items with video content */}
+                              {item.type === 'LECTURE' && (item.videoDetails?.videoDetails || item.duration || item.videoDetails?.videoDetails?.duration || item.meetingUrl || item.recordingUrl ||
                                 (item.tag === "Live" && item.lectureType === "LIVE")) && (
                                   item.tag === "Live" && item.lectureType === "LIVE" ? (
                                     <Button

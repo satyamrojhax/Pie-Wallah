@@ -1,40 +1,14 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { isTokenValid, logout } from "@/lib/auth.js";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const { isAuthenticated, isLoading } = useAuth();
     const location = useLocation();
-
-    useEffect(() => {
-        const checkAuth = async () => {
-            setIsLoading(true);
-            
-            // Simple localStorage-based authentication check
-            if (isTokenValid()) {
-                setIsAuthenticated(true);
-            } else {
-                // Token is expired or invalid, logout
-                logout();
-                setIsAuthenticated(false);
-                
-                // Only show toast if we're actually redirecting from a protected page
-                if (location.pathname !== "/login" && location.pathname !== "/otp-verification") {
-                    toast.error("Session expired. Please login again.");
-                }
-            }
-            
-            setIsLoading(false);
-        };
-
-        checkAuth();
-    }, [location]);
 
     // Show loading spinner only during initial check
     if (isLoading) {
@@ -49,6 +23,10 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     }
 
     if (!isAuthenticated) {
+        // Only show toast if we're actually redirecting from a protected page
+        if (location.pathname !== "/login" && location.pathname !== "/otp-verification") {
+            toast.error("Session expired. Please login again.");
+        }
         return <Navigate to="/login" replace state={{ from: location }} />;
     }
 

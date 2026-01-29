@@ -8,39 +8,89 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import BackButton from "@/components/BackButton";
-import { fetchLectures, fetchNotes, fetchScheduleDetails } from "@/services/contentService";
+import { fetchLectures, fetchNotes, fetchDPPNotes, fetchScheduleDetails } from "@/services/contentService";
+import { getVideoStreamUrl } from "@/services/videoService";
 import { canAccessBatchContent } from "@/lib/enrollmentUtils";
 import { VideoPlayerSkeleton, ListSkeleton, CardSkeleton } from "@/components/ui/skeleton-loaders";
 
 type Lecture = {
   _id: string;
-  image?: string;
-  topic?: {
+  isFree?: boolean;
+  status?: string;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  isDPPNotes?: boolean;
+  dRoomId?: string;
+  isBatchDoubtEnabled?: boolean;
+  isChatEnabled?: boolean;
+  isCommentDisabled?: boolean;
+  isDPPVideos?: boolean;
+  isDoubtEnabled?: boolean;
+  isCopilotEnabled?: boolean;
+  isCopilotDoubtAllocationEnabled?: boolean;
+  isPathshala?: boolean;
+  restrictedSchedule?: boolean;
+  restrictedTime?: number;
+  tags?: Array<{
     _id?: string;
     name?: string;
+  }>;
+  teachers?: string[];
+  timeline?: any[];
+  topic?: string;
+  url?: string;
+  urlType?: string;
+  ytStreamKey?: string;
+  ytStreamUrl?: string;
+  lectureType?: string;
+  whiteboardType?: string;
+  videoDetails?: {
+    _id: string;
+    id: string;
+    name: string;
+    image: string;
+    videoUrl: string;
+    description: string;
+    duration: string;
+    status: string;
+    types: string[];
+    createdAt: string;
+    drmProtected?: boolean;
+    isZipDownloadEnabled?: boolean;
+    findKey?: string;
+    embedCode?: string;
+    video_id?: string;
+    vimeoId?: string;
+    hls_url?: string;
   };
-  duration?: number;
+  isVideoLecture?: boolean;
+  hasAttachment?: boolean;
+  conversationId?: string;
+  roomId?: string;
+  isLocked?: boolean;
+  isSimulatedLecture?: boolean;
+  // Legacy fields for backward compatibility
+  image?: string;
   createdAt?: string;
   title?: string;
   name?: string;
   fileName?: string;
   displayName?: string;
-  findKey?: string; // Used for identifying video resources securely
+  findKey?: string;
 };
 
 type Note = {
   _id: string;
-  topic?: string | {
-    _id?: string;
-    name?: string;
-  };
-  baseUrl?: string;
-  key?: string;
+  isFree?: boolean;
+  status?: string;
   date?: string;
-  title?: string;
-  name?: string;
-  fileName?: string;
-  displayName?: string;
+  startTime?: string;
+  endTime?: string;
+  isDPPNotes?: boolean;
+  dRoomId?: string;
+  isBatchDoubtEnabled?: boolean;
+  isSimulatedLecture?: boolean;
   homeworkIds?: Array<{
     _id?: string;
     topic?: string;
@@ -53,19 +103,30 @@ type Note = {
       name?: string;
     }>;
   }>;
+  // Legacy fields for backward compatibility
+  topic?: string | {
+    _id?: string;
+    name?: string;
+  };
+  baseUrl?: string;
+  key?: string;
+  title?: string;
+  name?: string;
+  fileName?: string;
+  displayName?: string;
 };
 
 type DPPContent = {
   _id: string;
-  topic?: string | {
-    _id?: string;
-    name?: string;
-  };
+  isFree?: boolean;
+  status?: string;
   date?: string;
-  title?: string;
-  name?: string;
-  fileName?: string;
-  displayName?: string;
+  startTime?: string;
+  endTime?: string;
+  isDPPNotes?: boolean;
+  dRoomId?: string;
+  isBatchDoubtEnabled?: boolean;
+  isSimulatedLecture?: boolean;
   homeworkIds?: Array<{
     _id?: string;
     topic?: string;
@@ -78,9 +139,17 @@ type DPPContent = {
       name?: string;
     }>;
   }>;
-  // Added optional fields for direct attachment URL
+  // Legacy fields for backward compatibility
+  topic?: string | {
+    _id?: string;
+    name?: string;
+  };
   baseUrl?: string;
   key?: string;
+  title?: string;
+  name?: string;
+  fileName?: string;
+  displayName?: string;
 };
 
 type ContentResponse = {
@@ -386,144 +455,128 @@ const TopicSubjectDetails = () => {
   const lectures = allLectures; // Use accumulated lectures
   const lecturesPagination = lecturesData?.paginate; // Use 'paginate' not 'pagination'
 
-  // Fetch notes
+  // Fetch Notes directly from Content API
   const {
     data: notesData,
     isLoading: notesLoading,
     isError: notesError,
     refetch: refetchNotes,
   } = useQuery<ContentResponse>({
-    queryKey: ["topic-notes", batchId, subjectSlug, topicId, notesPage],
+    queryKey: ["topic-notes", batchId, subjectSlug, topicId],
     enabled: Boolean(batchId && subjectSlug && topicId),
     queryFn: async () => {
-      const response = await fetchNotes(batchId!, subjectSlug!, topicId!, notesPage);
+      const response = await fetchNotes(batchId!, subjectSlug!, topicId!);
       
-      // Extract individual homework items from each data object
-      const allData = response.data as any[];
-      const extractedNotes: Note[] = [];
-      allData.forEach((item: any, itemIndex: number) => {
-        if (item.homeworkIds && Array.isArray(item.homeworkIds)) {
-          // Create individual note items from homeworkIds
-          item.homeworkIds.forEach((homework: any, index: number) => {
-            // Extract baseUrl and key from attachmentIds
-            let baseUrl = "";
-            let key = "";
-
-            if (homework.attachmentIds && homework.attachmentIds.length > 0) {
-              const att = homework.attachmentIds[0];
-              baseUrl = att?.baseUrl || "";
-              // Key might be in 'key' field
-              key = att?.key || "";
-            }
-
-            const noteItem = {
-              _id: `${item._id}-note-${index}`, // Create unique ID for each homework
-              topic: homework.topic,
-              date: item.date,
-              title: homework.topic,
-              name: homework.topic,
-              fileName: homework.note,
-              displayName: homework.topic,
-              homeworkIds: [homework], // Keep the individual homework
-              baseUrl: baseUrl,
-              key: key
-            };
-            extractedNotes.push(noteItem);
-          });
-        } else {
-          // If no homeworkIds, add the item as is
-          extractedNotes.push(item as Note);
-        }
-      });
-
-      // Return the extracted notes with pagination info
-      return {
-        ...response,
-        data: extractedNotes
-      } as ContentResponse;
+      // Transform the response to expand all homeworkIds into individual notes
+      if (response?.data) {
+        const expandedNotes: Note[] = [];
+        response.data.forEach((item: any) => {
+          if (item.homeworkIds && item.homeworkIds.length > 0) {
+            // Create individual note items for each homework
+            item.homeworkIds.forEach((homework: any, index: number) => {
+              expandedNotes.push({
+                _id: `${item._id}-note-${index}`,
+                isFree: item.isFree,
+                status: item.status,
+                date: item.date,
+                startTime: item.startTime,
+                endTime: item.endTime,
+                isDPPNotes: item.isDPPNotes,
+                dRoomId: item.dRoomId,
+                isBatchDoubtEnabled: item.isBatchDoubtEnabled,
+                isSimulatedLecture: item.isSimulatedLecture,
+                homeworkIds: [homework], // Individual homework
+                topic: homework.topic,
+                title: homework.topic,
+                name: homework.topic,
+                fileName: homework.note,
+                displayName: homework.topic,
+                baseUrl: homework.attachmentIds?.[0]?.baseUrl || "",
+                key: homework.attachmentIds?.[0]?.key || ""
+              });
+            });
+          }
+        });
+        
+        return {
+          ...response,
+          data: expandedNotes
+        };
+      }
+      
+      return response;
     },
     staleTime: 1000 * 60 * 5,
   });
 
   // Flatten all note pages
-  const notes = allNotes; // Use accumulated notes
-  const notesPagination = notesData?.paginate; // Use 'paginate' not 'pagination'
+  const notes = notesData?.data || []; // Extract data array from ContentResponse
+  const notesPagination = notesData?.paginate; // Use pagination from ContentResponse
 
-  // Fetch DPP
+  // Fetch DPP directly from Content API
   const {
     data: dppData,
     isLoading: dppLoading,
     isError: dppError,
     refetch: refetchDPP,
-  } = useQuery<DPPContent[]>({
+  } = useQuery<ContentResponse>({
     queryKey: ["topic-dpp", batchId, subjectSlug, topicId],
     enabled: Boolean(batchId && subjectSlug && topicId),
     queryFn: async () => {
-      const extractedDPP: DPPContent[] = [];
+      const response = await fetchDPPNotes(batchId!, subjectSlug!, topicId!);
       
-      // Fetch DPP content only from schedule details
-      try {
-        // Get all lecture schedules to check for DPP content
-        const lecturesResponse = await fetchLectures(batchId!, subjectSlug!, topicId!);
-        
-        // Fetch schedule details for each lecture to extract DPP content
-        const scheduleDPPPromises = lecturesResponse.data.map(async (lecture: any) => {
-          try {
-            const scheduleDetails = await fetchScheduleDetails(batchId!, subjectSlug!, lecture._id);
-            if (scheduleDetails && scheduleDetails.dpp && scheduleDetails.dppHomeworks) {
-              return scheduleDetails.dppHomeworks.map((homework: any, index: number) => {
-                let baseUrl = "";
-                let key = "";
-
-                if (homework.attachmentIds && homework.attachmentIds.length > 0) {
-                  const att = homework.attachmentIds[0];
-                  baseUrl = att?.baseUrl || "";
-                  key = att?.key || "";
-                }
-
-                return {
-                  _id: `${lecture._id}-schedule-dpp-${index}`,
-                  topic: homework.topic || scheduleDetails.dpp.topic,
-                  date: homework.createdAt || scheduleDetails.date || lecture.createdAt,
-                  title: homework.topic || scheduleDetails.dpp.topic,
-                  name: homework.topic || scheduleDetails.dpp.topic,
-                  fileName: homework.note || scheduleDetails.dpp.topic,
-                  displayName: homework.topic || scheduleDetails.dpp.topic,
-                  homeworkIds: [homework],
-                  baseUrl: baseUrl,
-                  key: key
-                };
+      // Transform the response to expand all homeworkIds into individual DPP items
+      if (response?.data) {
+        const expandedDPP: DPPContent[] = [];
+        response.data.forEach((item: any) => {
+          if (item.homeworkIds && item.homeworkIds.length > 0) {
+            // Create individual DPP items for each homework
+            item.homeworkIds.forEach((homework: any, index: number) => {
+              expandedDPP.push({
+                _id: `${item._id}-dpp-${index}`,
+                isFree: item.isFree,
+                status: item.status,
+                date: item.date,
+                startTime: item.startTime,
+                endTime: item.endTime,
+                isDPPNotes: item.isDPPNotes,
+                dRoomId: item.dRoomId,
+                isBatchDoubtEnabled: item.isBatchDoubtEnabled,
+                isSimulatedLecture: item.isSimulatedLecture,
+                homeworkIds: [homework], // Individual homework
+                topic: homework.topic,
+                title: homework.topic,
+                name: homework.topic,
+                fileName: homework.note,
+                displayName: homework.topic,
+                baseUrl: homework.attachmentIds?.[0]?.baseUrl || "",
+                key: homework.attachmentIds?.[0]?.key || ""
               });
-            }
-            return [];
-          } catch (error) {
-            // Failed to fetch schedule details
-            return [];
+            });
           }
         });
-
-        const scheduleDPPResults = await Promise.all(scheduleDPPPromises);
-        const scheduleDPPItems = scheduleDPPResults.flat();
         
-        extractedDPP.push(...scheduleDPPItems);
-      } catch (error) {
-        // Failed to fetch schedule DPP content
+        return {
+          ...response,
+          data: expandedDPP
+        };
       }
-
-      return extractedDPP;
+      
+      return response;
     },
     staleTime: 1000 * 60 * 5,
   });
 
-  const dpp = dppData || [];
+  const dpp = dppData?.data || []; // Extract data array from ContentResponse
 
   // Helper functions to determine if there are more pages
   const hasMoreLectures = () => {
     if (!lecturesPagination) return false;
+    
     // Special case: if totalCount is 0 but we have data, check if current page has limit items
     if (lecturesPagination.totalCount === 0) {
       // If the current page fetched has exactly the limit number of items, there might be more pages
-      const currentPageData = lecturesData?.data as Lecture[] || [];
+      const currentPageData = lecturesData?.data || [];
       return currentPageData.length >= (lecturesPagination.limit || 20);
     }
     // Otherwise check if there are more pages based on current page and total count
@@ -533,17 +586,8 @@ const TopicSubjectDetails = () => {
   };
 
   const hasMoreNotes = () => {
-    if (!notesPagination) return false;
-    // Special case: if totalCount is 0 but we have data, check if current page has limit items
-    if (notesPagination.totalCount === 0) {
-      // If the current page fetched has exactly the limit number of items, there might be more pages
-      const currentPageData = notesData?.data as Note[] || [];
-      return currentPageData.length >= (notesPagination.limit || 20);
-    }
-    // Otherwise check if there are more pages based on current page and total count
-    const itemsPerPage = notesPagination.limit || 20;
-    const totalPages = Math.ceil((notesPagination.totalCount || 0) / itemsPerPage);
-    return notesPage < totalPages;
+    // No pagination when using schedule API - always return false
+    return false;
   };
 
   const getTotalLectures = () => {
@@ -612,12 +656,13 @@ const TopicSubjectDetails = () => {
 
     // Collect URLs from items that already have baseUrl and key
     [...notes, ...dpp].forEach((item) => {
-      if (item.baseUrl && item.key) {
+      const contentItem = item as Note | DPPContent; // Cast to the correct types
+      if (contentItem.baseUrl && contentItem.key) {
         // Check if key is already a full URL
-        const url = item.key.startsWith('http') ? item.key : `${item.baseUrl}${item.key}`;
-        map[item._id] = url;
-      } else if (item.homeworkIds && item.homeworkIds.length > 0) {
-        const homework = item.homeworkIds[0];
+        const url = contentItem.key.startsWith('http') ? contentItem.key : `${contentItem.baseUrl}${contentItem.key}`;
+        map[contentItem._id] = url;
+      } else if (contentItem.homeworkIds && contentItem.homeworkIds.length > 0) {
+        const homework = contentItem.homeworkIds[0];
         if (homework.attachmentIds && homework.attachmentIds.length > 0) {
           const att = homework.attachmentIds[0];
           const base = att.baseUrl || "";
@@ -625,7 +670,7 @@ const TopicSubjectDetails = () => {
           if (base && key) {
             // Check if key is already a full URL
             const url = key.startsWith('http') ? key : `${base}${key}`;
-            map[item._id] = url;
+            map[contentItem._id] = url;
           }
         }
       }
@@ -993,9 +1038,9 @@ const TopicSubjectDetails = () => {
                           <Video className="h-12 w-12 text-muted-foreground" />
                         </div>
                       )}
-                      {(getContentDuration(lecture) || lecture.duration) && (
+                      {getContentDuration(lecture) && (
                         <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-xs text-white">
-                          {formatDuration(getContentDuration(lecture) || lecture.duration || 0)}
+                          {formatDuration(getContentDuration(lecture) || 0)}
                         </div>
                       )}
                       {isLectureCompleted(lecture._id) && (
@@ -1062,13 +1107,12 @@ const TopicSubjectDetails = () => {
                       <Button
                         size="sm"
                         className="gap-2 w-fit mt-auto"
-                        onClick={() => {
-                          // Redirect to player
-                          // If subjectId is missing (e.g. direct link), we might fail. 
-                          // Ideally we should fetch it or handle it, but for now we rely on the flow.
+                        onClick={async () => {
                           const sId = subjectId || "unknown";
                           const childId = lecture.findKey || lecture._id;
-                          navigate(`/player/${batchId}/${sId}/${childId}`);
+                          
+                          // Navigate to video player page with new URL format
+                          navigate(`/watch?piewallah=video&author=satyamrojhax&batchId=${batchId!}&subjectId=${sId}&childId=${childId}&penpencilvdo=true`);
                         }}
                       >
                         <Play className="h-4 w-4" />

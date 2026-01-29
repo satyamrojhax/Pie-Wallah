@@ -17,22 +17,33 @@ export const AUTH_CONFIG = {
     CLIENT_SECRET: "KjPXuAVfC5xbmgreETNMaL7z",
 };
 
-export const getCommonHeaders = () => ({
-    "accept": "*/*",
-    "accept-language": "en-US,en;q=0.9",
-    "client-id": AUTH_CONFIG.CLIENT_ID,
-    "client-type": "WEB",
-    "content-type": "application/json",
-    "priority": "u=1, i",
-    "randomid": crypto.randomUUID(),
-    "sec-ch-ua": '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
-    "sec-ch-ua-mobile": "?1",
-    "sec-ch-ua-platform": '"Android"',
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "cross-site",
-    "x-sdk-version": "0.0.12"
-});
+export const getCommonHeaders = () => {
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "client-id": AUTH_CONFIG.CLIENT_ID,
+        "client-type": "WEB",
+        "client-version": "4.4.20",
+        "content-type": "application/json",
+        "priority": "u=1, i",
+        "randomid": crypto.randomUUID(),
+        "sec-ch-ua": '"Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"',
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": '"Android"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "x-sdk-version": "0.0.16"
+    };
+    
+    // Add authorization header only if token exists
+    if (token) {
+        headers["authorization"] = `Bearer ${token}`;
+    }
+    
+    return headers;
+};
 
 export const sendOtp = async (mobileNumber: string) => {
     const response = await fetch(`${AUTH_CONFIG.BASE_URL_V1}/users/get-otp?smsType=0&fallback=true`, {
@@ -266,6 +277,17 @@ export const logout = (): void => {
     sessionStorage.removeItem("refresh_token");
     sessionStorage.removeItem("token_expires_at");
     sessionStorage.removeItem("user_data");
+    
+    // Redirect to login page
+    if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+    }
+};
+
+// Handle authentication errors and auto-logout
+export const handleAuthError = (): void => {
+    console.warn('Authentication error detected, logging out...');
+    logout();
 };
 
 export const getStoredUserData = () => {

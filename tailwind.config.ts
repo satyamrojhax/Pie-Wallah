@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
-import type { PluginAPI } from "tailwindcss";
 
-const typography = require("@tailwindcss/typography") as PluginAPI;
+const typography = require("@tailwindcss/typography");
 
 export default {
   darkMode: ["class"],

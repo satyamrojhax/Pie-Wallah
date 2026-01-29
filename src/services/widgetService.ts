@@ -135,7 +135,6 @@ export const fetchPopularBatches = async (): Promise<PopularBatch[]> => {
 
     const headers = {
       ...getCommonHeaders(),
-      'Authorization': `Bearer ${token}`,
     };
 
     const response = await fetch(`${API_BASE}/cohort/${cohortId}/widgets`, {

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { getApiUrl, safeFetch } from '../lib/apiConfig';
+import { getVideoStreamUrl } from '../services/videoService';
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -13,7 +14,7 @@ import { getCommonHeaders } from "@/lib/auth";
 import { fetchScheduleDetails } from "@/services/contentService";
 import CountdownTimer from "@/components/CountdownTimer";
 
-const TODAYS_SCHEDULE_API = "/api/todays-schedule";
+const TODAYS_SCHEDULE_API = "/v1/batches/{batchId}/todays-schedule";
 const IMAGE_FALLBACK = "https://static.pw.live/5eb393ee95fab7468a79d189/9ef3bea0-6eed-46a8-b148-4a35dd6b3b61.png";
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 const GC_TIME = 1000 * 60 * 10; // 10 minutes
@@ -22,12 +23,14 @@ export type ScheduleItem = {
   _id: string;
   topic: string;
   subject?: string;
+  subjectId?: string;
+  subjectName?: string;
   batchId: string;
   batchName?: string;
   teacherName?: string;
   startTime: string;
   endTime?: string;
-  status?: "live" | "upcoming" | "completed";
+  status?: "live" | "upcoming" | "completed" | string;
   meetingUrl?: string;
   recordingUrl?: string;
   platform?: string;
@@ -35,8 +38,10 @@ export type ScheduleItem = {
   duration?: string; // duration from videoDetails
   tag?: string; // "Live", "Ended", "Upcoming", etc.
   lectureType?: string; // "LIVE", "RECORDED", "PDF", etc.
+  type?: "LECTURE" | "NOTES" | "DPP_QUIZ" | "DPP_PDF" | "BULK_SCHEDULE"; // etc.
   parentScheduleId?: string; // for fetching live sessions
   scheduleIds?: string[]; // for fetching live sessions
+  // API response structures
   videoDetails?: {
     _id: string;
     id: string;
@@ -49,6 +54,10 @@ export type ScheduleItem = {
     types: string[];
     findKey?: string; // findKey for video fetching
   };
+  notesDetails?: any;
+  dppQuizDetails?: any;
+  dppPDFDetails?: any;
+  bulkScheduleDetails?: any;
   homeworkIds?: Array<{
     _id?: string;
     topic?: string;
@@ -127,6 +136,8 @@ const fetchWeeklySchedules = async (batchId: string, startDate: string, endDate:
         (item as any).imageUrl ||
         IMAGE_FALLBACK,
       subject: (item as any).subjectId?.name || (item as any).subject,
+      subjectId: (item as any).subjectId?._id || (item as any).subjectId || batchSubjectId,
+      subjectName: (item as any).subjectId?.name || (item as any).subject,
       startTime: (item as any).startTime || (item as any).start_time,
       endTime: (item as any).endTime || (item as any).end_time,
     }));
@@ -186,8 +197,7 @@ const fetchTodaysSchedule = async (batchIds: string[]): Promise<ScheduleItem[]> 
       batchIds.map(async (batchId) => {
         try {
           // Use local proxy endpoint (Vite will proxy to PenPencil API)
-          const url = getApiUrl(`/todays-schedule`, {
-            batchId,
+          const url = getApiUrl(`/v1/batches/${batchId}/todays-schedule`, {
             isNewStudyMaterialFlow: 'true'
           });
           
@@ -214,20 +224,46 @@ const fetchTodaysSchedule = async (batchIds: string[]): Promise<ScheduleItem[]> 
           const data: BatchScheduleResponse = await response.json();
           const items = data.data || data.schedule || [];
           
-          return items.map((item) => ({
-            ...item,
-            batchId,
-            image: (item as any).videoDetails?.image ||
-              (item as any).previewImageUrl ||
-              (item as any).previewImageUrlMWeb ||
-              (item as any).image ||
-              (item as any).thumbnail ||
-              (item as any).imageUrl ||
-              "https://static.pw.live/5eb393ee95fab7468a79d189/9ef3bea0-6eed-46a8-b148-4a35dd6b3b61.png",
-            subject: (item as any).subjectId?.name || (item as any).subject,
-            startTime: (item as any).startTime || (item as any).start_time,
-            endTime: (item as any).endTime || (item as any).end_time,
-          }));
+          return items.map((item) => {
+            // Extract the correct nested object based on type
+            let details: any = {};
+            if (item.type === 'LECTURE' && item.videoDetails) {
+              details = item.videoDetails;
+            } else if (item.type === 'NOTES' && item.notesDetails) {
+              details = item.notesDetails;
+            } else if (item.type === 'DPP_QUIZ' && item.dppQuizDetails) {
+              details = item.dppQuizDetails;
+            } else if (item.type === 'DPP_PDF' && item.dppPDFDetails) {
+              details = item.dppPDFDetails;
+            } else if (item.type === 'BULK_SCHEDULE' && item.bulkScheduleDetails) {
+              details = item.bulkScheduleDetails;
+            } else {
+              // Fallback to item itself if no specific type structure
+              details = item;
+            }
+
+            return {
+              ...item,
+              batchId,
+              image: details.videoDetails?.image ||
+                details.previewImageUrl ||
+                details.previewImageUrlMWeb ||
+                details.image ||
+                details.thumbnail ||
+                details.imageUrl ||
+                "https://static.pw.live/5eb393ee95fab7468a79d189/9ef3bea0-6eed-46a8-b148-4a35dd6b3b61.png",
+              subject: details.subjectId?.name || item.subject,
+              subjectId: details.subjectId?._id || item.subjectId,
+              subjectName: details.subjectId?.name || item.subject,
+              startTime: details.startTime || item.startTime,
+              endTime: details.endTime || item.endTime,
+              topic: details.topic || item.topic,
+              status: details.status || item.status,
+              lectureType: details.lectureType || item.lectureType,
+              tag: details.tag || item.tag,
+              homeworkIds: details.homeworkIds || item.homeworkIds,
+            };
+          });
         } catch (error) {
           return [];
         }
@@ -434,8 +470,9 @@ const Study = () => {
 
     setOpeningMaterialId(item._id);
     try {
-      // Get subject ID from the item or use a fallback
+      // Get subject ID from the item with better fallback handling
       const subjectId = (item as any).subjectId?._id || (item as any).subjectId || (item as any).batchSubjectId || "unknown";
+      const subjectName = (item as any).subjectId?.name || (item as any).subjectName || (item as any).subject || subjectId;
       
       // Fetch schedule details to get both notes and DPP content
       const scheduleDetails = await fetchScheduleDetails(item.batchId, subjectId, item._id);
@@ -500,9 +537,11 @@ const Study = () => {
       // Try to get video details and navigate to player
       const findKey = item.videoDetails?.findKey || item.videoDetails?._id || item._id;
       const subjectId = (item as any).subjectId?._id || (item as any).subjectId || "unknown";
+      const subjectName = (item as any).subjectId?.name || (item as any).subjectName || subjectId;
 
       if (findKey && item.batchId) {
-        navigate(`/player/${item.batchId}/${subjectId}/${findKey}`);
+        // Navigate to video player page with new URL format
+        navigate(`/watch?piewallah=video&author=satyamrojhax&batchId=${item.batchId}&subjectId=${subjectId}&childId=${findKey}&penpencilvdo=true`);
       } else {
         toast.error("Video details not available");
       }
@@ -571,12 +610,14 @@ const Study = () => {
         return;
       }
 
-      // Try to get video details and navigate to player
+      // Try to get video details and use new API
       const findKey = item.videoDetails?.findKey || item.videoDetails?._id || item._id;
-      const subjectId = (item as any).subjectId?._id || (item as any).subjectId || "unknown";
+      const subjectId = (item as any).subjectId?._id || (item as any).subjectId || (item as any).batchSubjectId || "unknown";
+      const subjectName = (item as any).subjectId?.name || (item as any).subjectName || (item as any).subject || subjectId;
 
       if (findKey && item.batchId) {
-        navigate(`/player/${item.batchId}/${subjectId}/${findKey}`);
+        // Navigate to video player page with new URL format
+        navigate(`/watch?piewallah=video&author=satyamrojhax&batchId=${item.batchId}&subjectId=${subjectId}&childId=${findKey}&penpencilvdo=true`);
       } else {
         toast.error("Recording not available yet");
       }
@@ -829,8 +870,8 @@ const Study = () => {
                     </Button>
                   )}
 
-                  {/* Video Buttons - Show for video content or live lectures */}
-                  {(item.videoDetails || item.duration || item.videoDetails?.duration || item.meetingUrl || item.recordingUrl ||
+                  {/* Video Buttons - Show only for LECTURE type items with video content or live lectures */}
+                  {item.type === 'LECTURE' && (item.videoDetails || item.duration || item.videoDetails?.duration || item.meetingUrl || item.recordingUrl ||
                     (item.tag === "Live" && item.lectureType === "LIVE")) && (
                       // Show Join Live button only for LIVE lectures with Live tag
                       item.tag === "Live" && item.lectureType === "LIVE" ? (

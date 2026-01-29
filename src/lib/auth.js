@@ -15,22 +15,33 @@ export const AUTH_CONFIG = {
     CLIENT_SECRET: "KjPXuAVfC5xbmgreETNMaL7z",
 };
 
-export const getCommonHeaders = () => ({
-    "accept": "*/*",
-    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-    "client-id": AUTH_CONFIG.CLIENT_ID,
-    "client-type": "WEB",
-    "content-type": "application/json",
-    "priority": "u=1, i",
-    "randomid": crypto.randomUUID(),
-    "sec-ch-ua": '"Google Chrome";v="143", "Chromium";v="143", "Not_A(Brand";v="24"',
-    "sec-ch-ua-mobile": "?1",
-    "sec-ch-ua-platform": '"Android"',
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "cross-site",
-    "x-sdk-version": "0.0.12"
-});
+export const getCommonHeaders = () => {
+    const token = getAuthToken();
+    const headers = {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "client-id": AUTH_CONFIG.CLIENT_ID,
+        "client-type": "WEB",
+        "client-version": "4.4.20",
+        "content-type": "application/json",
+        "priority": "u=1, i",
+        "randomid": crypto.randomUUID(),
+        "sec-ch-ua": '"Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"',
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": '"Android"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "x-sdk-version": "0.0.16"
+    };
+    
+    // Add authorization header only if token exists
+    if (token) {
+        headers["authorization"] = `Bearer ${token}`;
+    }
+    
+    return headers;
+};
 
 export const sendOtp = async (mobileNumber) => {
     const response = await fetch(`${AUTH_CONFIG.BASE_URL_V1}/users/get-otp?smsType=0&fallback=true`, {
@@ -72,19 +83,28 @@ export const verifyOtp = async (mobileNumber, otp) => {
 
     const data = await response.json();
 
-    // Store authentication data persistently
+    // Store authentication data persistently in both localStorage and sessionStorage
     if (data?.data?.access_token) {
-        localStorage.setItem("param_auth_token", data.data.access_token);
-        localStorage.setItem("refresh_token", data.data.refresh_token || "");
+        const token = data.data.access_token;
+        const refreshToken = data.data.refresh_token || "";
+        const expiresAt = Date.now() + (data.data.expires_in || 3600) * 1000;
         
-        // Calculate proper expiration time (expires_in is in seconds, convert to milliseconds)
-        const expirationTime = Date.now() + (data.data.expires_in || 3600) * 1000;
-        localStorage.setItem("token_expires_at", String(expirationTime));
+        // localStorage for persistence across sessions
+        localStorage.setItem("param_auth_token", token);
+        localStorage.setItem("refresh_token", refreshToken);
+        localStorage.setItem("token_expires_at", String(expiresAt));
+        
+        // sessionStorage for current session backup
+        sessionStorage.setItem("param_auth_token", token);
+        sessionStorage.setItem("refresh_token", refreshToken);
+        sessionStorage.setItem("token_expires_at", String(expiresAt));
     }
     
     // Store user data from token response
     if (data?.data?.user) {
-        localStorage.setItem("user_data", JSON.stringify(data.data.user));
+        const userData = JSON.stringify(data.data.user);
+        localStorage.setItem("user_data", userData);
+        sessionStorage.setItem("user_data", userData);
     }
 
     return data;
@@ -230,15 +250,19 @@ export const refreshAuthToken = async () => {
         const data = await response.json();
         
         if (data?.data?.access_token) {
-            localStorage.setItem("param_auth_token", data.data.access_token);
+            const token = data.data.access_token;
+            const refreshToken = data.data.refresh_token || "";
+            const expiresAt = Date.now() + (data.data.expires_in || 3600) * 1000;
             
-            // Calculate proper expiration time (expires_in is in seconds, convert to milliseconds)
-            const expirationTime = Date.now() + (data.data.expires_in || 3600) * 1000;
-            localStorage.setItem("token_expires_at", String(expirationTime));
+            // localStorage for persistence across sessions
+            localStorage.setItem("param_auth_token", token);
+            localStorage.setItem("refresh_token", refreshToken);
+            localStorage.setItem("token_expires_at", String(expiresAt));
             
-            if (data.data.refresh_token) {
-                localStorage.setItem("refresh_token", data.data.refresh_token);
-            }
+            // sessionStorage for current session backup
+            sessionStorage.setItem("param_auth_token", token);
+            sessionStorage.setItem("refresh_token", refreshToken);
+            sessionStorage.setItem("token_expires_at", String(expiresAt));
             
             return true;
         }
@@ -260,6 +284,17 @@ export const logout = () => {
     sessionStorage.removeItem("refresh_token");
     sessionStorage.removeItem("token_expires_at");
     sessionStorage.removeItem("user_data");
+    
+    // Redirect to login page
+    if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+    }
+};
+
+// Handle authentication errors and auto-logout
+export const handleAuthError = () => {
+    console.warn('Authentication error detected, logging out...');
+    logout();
 };
 
 export const getStoredUserData = () => {

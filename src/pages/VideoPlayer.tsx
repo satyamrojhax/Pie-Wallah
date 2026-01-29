@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { API_CONFIG, safeFetch } from '../lib/apiConfig';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import ShakaPlayer from '@/components/ShakaPlayer';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, Loader2, AlertCircle, MoreVertical, Download, Eye, FileText, X, Presentation, Clock, ChevronLeft, ChevronRight, Play, Menu } from 'lucide-react';
+import { Loader2, AlertCircle, MoreVertical, Download, Eye, FileText, X, Presentation, Clock, ChevronLeft, ChevronRight, Play, Menu } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { fetchScheduleDetails, fetchSlides } from '@/services/contentService';
+import { getCommonHeaders } from '@/lib/auth';
 
 interface VideoData {
     stream_url: string;
@@ -19,20 +21,24 @@ interface VideoData {
 }
 
 const VideoPlayer = () => {
-    const { batchId, subjectId, childId } = useParams();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    
+    // Parse query parameters
+    const batchId = searchParams.get('batchId');
+    const subjectId = searchParams.get('subjectId');
+    const childId = searchParams.get('childId');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [videoData, setVideoData] = useState<VideoData | null>(null);
     const [showAttachmentsMenu, setShowAttachmentsMenu] = useState(false);
     const [attachments, setAttachments] = useState<any[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(false);
-    const [showSlidesMenu, setShowSlidesMenu] = useState(false);
+    const [showSlidesModal, setShowSlidesModal] = useState(false);
+    const [showAttachmentsModal, setShowAttachmentsModal] = useState(false);
     const [slides, setSlides] = useState<any[]>([]);
     const [slidesLoading, setSlidesLoading] = useState(false);
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-    const [showTimeline, setShowTimeline] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
     const [showDropdown, setShowDropdown] = useState(false);
 
     useEffect(() => {
@@ -56,66 +62,70 @@ const VideoPlayer = () => {
             try {
                 setLoading(true);
                 
-                // Try primary endpoint first
-                let data;
-                let endpointUsed = '';
+                // Fetch video data from the API
+                const apiUrl = `https://piewallahapi.vercel.app/api/video?batchId=${batchId}&subjectId=${subjectId}&childId=${childId}`;
+                console.log('Fetching video data from:', apiUrl);
                 
-                try {
-                    const primaryUrl = `${API_CONFIG.VIDEO_API_PROXY_BASE_URL}/video?batchId=${batchId}&subjectId=${subjectId}&childId=${childId}`;
-                    // Trying primary endpoint
-                    const response = await safeFetch(primaryUrl);
-                    
-                    if (!response.ok) {
-                        throw new Error(`Primary endpoint failed: ${response.statusText}`);
-                    }
-                    
-                    data = await response.json();
-                    endpointUsed = 'primary';
-                    // Primary endpoint succeeded
-                    
-                } catch (primaryError) {
-                    // Primary endpoint failed, trying fallback
-                    
-                    // Try fallback endpoint
-                    const fallbackUrl = `${API_CONFIG.API_BASE_URL}/api/video-content?batchId=${batchId}&subjectId=${subjectId}&childId=${childId}`;
-                    // Trying fallback endpoint
-                    const fallbackResponse = await safeFetch(fallbackUrl);
-                    
-                    if (!fallbackResponse.ok) {
-                        throw new Error(`Fallback endpoint also failed: ${fallbackResponse.statusText}`);
-                    }
-                    
-                    data = await fallbackResponse.json();
-                    endpointUsed = 'fallback';
-                    // Fallback endpoint succeeded
+                const headers = getCommonHeaders();
+                // Add special headers for video API
+                headers['AUTHOR'] = 'SATYAM ROJHAX';
+                headers['OWNER'] = 'PIEWALLAH@SATYAMROJHAX';
+                headers['AUTHORIZATION'] = 'SATYAM ROJHAX HAS ONLY ALLOWED PIE WALLAH TO USE THIS API@MAT KAR LALA MAT KAR, NA KARE JANAB NA KARE, APNI MAA YAHAN CHORI KARKE NA CHUDWAYE!';
+                // Generate a fresh random ID for this specific request
+                headers['randomid'] = crypto.randomUUID();
+                // Additional technical headers for video API
+                headers['X-Request-ID'] = crypto.randomUUID();
+                headers['X-Client-Version'] = '1.69.0699';
+                headers['X-Platform'] = 'WEB-APP-BY-SATYAM ROJHAX';
+                headers['X-Video-Player'] = 'Satyam RojhaX';
+                headers['Cache-Control'] = 'no-cache';
+                headers['Pragma'] = 'no-cache';
+                
+                console.log('Using headers:', headers);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: headers
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.statusText}`);
                 }
-
+                
+                const apiResponse = await response.json();
+                console.log('API Response:', apiResponse);
+                
+                if (!apiResponse.success) {
+                    throw new Error("API returned unsuccessful response");
+                }
+                
+                const data = apiResponse.data;
+                
                 // Validate data
-                if (!data.stream_url) {
-                    throw new Error("No stream URL in response");
+                if (!data.url) {
+                    throw new Error("No video URL in response");
                 }
 
-                // Use the stream_url directly from the response as it's already signed
+                // Map API response to VideoData interface
                 const videoDataPayload: VideoData = {
-                    stream_url: data.stream_url,
+                    stream_url: apiResponse.stream_url || data.signedUrl ? `${data.url}${data.signedUrl}` : data.url,
                     cdnType: data.cdnType,
-                    urlType: data.url_type
+                    urlType: data.urlType
                 };
                 
-                // Only add DRM if it exists
-                if (data.drm && data.drm.kid && data.drm.key) {
+                // Add DRM if it exists
+                if (apiResponse.drm && apiResponse.drm.kid && apiResponse.drm.key) {
                     videoDataPayload.drm = {
-                        keyid: data.drm.kid, // Map kid to keyid
-                        key: data.drm.key
+                        keyid: apiResponse.drm.kid,
+                        key: apiResponse.drm.key
                     };
                 }
                 
                 setVideoData(videoDataPayload);
-                
-                // Video data loaded successfully
+                console.log('Video data loaded successfully:', videoDataPayload);
 
             } catch (err: any) {
-                // Failed to fetch video details from all endpoints
+                console.error("Failed to fetch video details:", err);
                 setError(err.message || "Failed to load video details");
             } finally {
                 setLoading(false);
@@ -124,10 +134,6 @@ const VideoPlayer = () => {
 
         fetchVideoData();
     }, [batchId, subjectId, childId]);
-
-    const handleBack = () => {
-        navigate(-1);
-    };
 
     const fetchAttachments = async () => {
         if (!batchId || !subjectId || !childId) return;
@@ -169,7 +175,7 @@ const VideoPlayer = () => {
             
             setAttachments(attachmentsList);
         } catch (error) {
-            // Failed to fetch attachments
+            console.error('Failed to fetch attachments:', error);
             setAttachments([]);
         } finally {
             setAttachmentsLoading(false);
@@ -180,12 +186,7 @@ const VideoPlayer = () => {
         if (attachments.length === 0 && !attachmentsLoading) {
             fetchAttachments();
         }
-        setShowAttachmentsMenu(!showAttachmentsMenu);
-        // Close slides menu when opening attachments menu
-        if (showSlidesMenu) {
-            setShowSlidesMenu(false);
-        }
-        // Close dropdown when opening attachments menu
+        setShowAttachmentsModal(!showAttachmentsModal);
         setShowDropdown(false);
     };
 
@@ -201,7 +202,7 @@ const VideoPlayer = () => {
                 setSlides([]);
             }
         } catch (error) {
-            // Failed to fetch slides
+            console.error('Failed to fetch slides:', error);
             setSlides([]);
         } finally {
             setSlidesLoading(false);
@@ -212,12 +213,7 @@ const VideoPlayer = () => {
         if (slides.length === 0 && !slidesLoading) {
             fetchSlidesData();
         }
-        setShowSlidesMenu(!showSlidesMenu);
-        // Close attachments menu when opening slides menu
-        if (showAttachmentsMenu) {
-            setShowAttachmentsMenu(false);
-        }
-        // Close dropdown when opening slides menu
+        setShowSlidesModal(!showSlidesModal);
         setShowDropdown(false);
     };
 
@@ -242,13 +238,6 @@ const VideoPlayer = () => {
         setCurrentSlideIndex((prev) => Math.min(slides.length - 1, prev + 1));
     };
 
-    const handleTimelineClick = () => {
-        setShowTimeline(!showTimeline);
-        // Close other panels when opening timeline
-        if (showAttachmentsMenu) setShowAttachmentsMenu(false);
-        if (showSlidesMenu) setShowSlidesMenu(false);
-    };
-
     const getSlideForTime = (timeInSeconds: number) => {
         // Find the slide that should be displayed at the current time
         for (let i = slides.length - 1; i >= 0; i--) {
@@ -263,7 +252,9 @@ const VideoPlayer = () => {
         setCurrentSlideIndex(index);
         
         // Debug: log slide data
-        // Slide data retrieved
+        console.log(`Slide ${index + 1} data:`, slides[index]);
+        console.log(`Timestamp: "${slides[index].timeStamp}"`);
+        console.log(`Timestamp type: ${typeof slides[index].timeStamp}`);
         
         // If slide has timestamp, seek video to that time
         if (slides[index].timeStamp && slides[index].timeStamp !== "0" && slides[index].timeStamp !== 0) {
@@ -276,7 +267,7 @@ const VideoPlayer = () => {
             const seconds = Math.floor(timeInSeconds % 60);
             const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             
-            // Seeking slide
+            console.log(`🎯 Seeking slide ${index + 1} to ${formattedTime} (${timeInSeconds} seconds)`);
             
             // Try multiple methods to seek the video
             let success = false;
@@ -286,10 +277,10 @@ const VideoPlayer = () => {
             if (videoElement) {
                 try {
                     videoElement.currentTime = timeInSeconds;
-                    // Direct video element seek successful
+                    console.log(`✅ Direct video element seek successful: ${formattedTime}`);
                     success = true;
                 } catch (e) {
-                    // Direct video element seek failed
+                    console.log('❌ Direct video element seek failed:', e);
                 }
             }
             
@@ -297,10 +288,10 @@ const VideoPlayer = () => {
             if (!success && (window as any).player) {
                 try {
                     (window as any).player.currentTime = timeInSeconds;
-                    // Shaka player API seek successful
+                    console.log(`✅ Shaka player API seek successful: ${formattedTime}`);
                     success = true;
                 } catch (e) {
-                    // Shaka player API seek failed
+                    console.log('❌ Shaka player API seek failed:', e);
                 }
             }
             
@@ -312,10 +303,10 @@ const VideoPlayer = () => {
                     if (video) {
                         try {
                             video.currentTime = timeInSeconds;
-                            // Shaka container video seek successful
+                            console.log(`✅ Shaka container video seek successful: ${formattedTime}`);
                             success = true;
                         } catch (e) {
-                            // Shaka container video seek failed
+                            console.log('❌ Shaka container video seek failed:', e);
                         }
                     }
                 }
@@ -327,20 +318,23 @@ const VideoPlayer = () => {
                 for (const video of allVideos) {
                     try {
                         video.currentTime = timeInSeconds;
-                        // Found and used video element
+                        console.log(`✅ Found and used video element: ${formattedTime}`);
                         success = true;
                         break;
                     } catch (e) {
-                        // Video element seek failed
+                        console.log('❌ Video element seek failed:', e);
                     }
                 }
             }
             
             if (!success) {
-                // All seek methods failed - video element not accessible
+                console.log('❌ All seek methods failed - video element not accessible');
+                // Debug: log all video elements found
+                console.log('Video elements found:', document.querySelectorAll('video').length);
+                console.log('Shaka player available:', !!(window as any).player);
             }
         } else {
-            // No valid timestamp for slide
+            console.log(`❌ No valid timestamp for slide ${index + 1} (timestamp: "${slides[index].timeStamp}")`);
         }
     };
 
@@ -360,20 +354,23 @@ const VideoPlayer = () => {
 
     // Test function to verify video seek works
     const testVideoSeek = () => {
-        // Testing video seek functionality
+        console.log('Testing video seek functionality...');
         const videoElement = document.querySelector('video');
         if (videoElement) {
-            // Video element found
+            console.log('Video element found, current time:', videoElement.currentTime);
+            console.log('Video duration:', videoElement.duration);
+            console.log('Video paused:', videoElement.paused);
             
             // Test seeking to 10 seconds
             try {
                 videoElement.currentTime = 10;
-                // Test seek to 10 seconds successful
+                console.log('✅ Test seek to 10 seconds successful');
             } catch (e) {
-                // Test seek failed
+                console.log('❌ Test seek failed:', e);
             }
         } else {
-            // No video element found
+            console.log('❌ No video element found');
+            console.log('All video elements:', document.querySelectorAll('video'));
         }
     };
 
@@ -402,7 +399,7 @@ const VideoPlayer = () => {
             document.body.removeChild(link);
             window.URL.revokeObjectURL(blobUrl);
         } catch (error) {
-            // Download failed, opening in new tab
+            console.error('Download failed, opening in new tab:', error);
             // Fallback to opening in new tab
             window.open(url, "_blank", "noopener,noreferrer");
         }
@@ -426,9 +423,6 @@ const VideoPlayer = () => {
                     <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
                     <h2 className="text-xl font-bold mb-2">Error Loading Video</h2>
                     <p className="text-muted-foreground mb-6">{error}</p>
-                    <Button onClick={handleBack} variant="outline">
-                        Go Back
-                    </Button>
                 </Card>
             </div>
         );
@@ -438,22 +432,14 @@ const VideoPlayer = () => {
         <div className="fixed inset-0 bg-black z-50 overflow-hidden flex flex-col">
             {/* Minimal Header */}
             <div className="absolute top-0 left-0 w-full p-4 z-10 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
-                <div className="flex items-center justify-between gap-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleBack}
-                        className="text-white hover:bg-white/20 pointer-events-auto rounded-full"
-                    >
-                        <ArrowLeft className="h-6 w-6" />
-                    </Button>
+                <div className="flex items-center justify-end gap-2">
                     <div className="flex items-center gap-2">
                         <DropdownMenu open={showDropdown} onOpenChange={setShowDropdown}>
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="text-white hover:bg-white/20 pointer-events-auto rounded-full hover:scale-110 hover:shadow-lg transition-all duration-200"
+                                    className="text-white hover:bg-white/20 pointer-events-auto rounded-full"
                                     title="More Options"
                                 >
                                     <MoreVertical className="h-6 w-6" />
@@ -466,7 +452,7 @@ const VideoPlayer = () => {
                                 >
                                     <Presentation className="h-4 w-4 mr-3 text-foreground/70" />
                                     Timeline
-                                    {showSlidesMenu && (
+                                    {showSlidesModal && (
                                         <div className="ml-auto w-2 h-2 bg-foreground rounded-full"></div>
                                     )}
                                 </DropdownMenuItem>
@@ -476,7 +462,7 @@ const VideoPlayer = () => {
                                 >
                                     <FileText className="h-4 w-4 mr-3 text-foreground/70" />
                                     Attachments
-                                    {showAttachmentsMenu && (
+                                    {showAttachmentsModal && (
                                         <div className="ml-auto w-2 h-2 bg-foreground rounded-full"></div>
                                     )}
                                 </DropdownMenuItem>
@@ -487,7 +473,7 @@ const VideoPlayer = () => {
             </div>
 
             {/* Player Container */}
-            <div className={`flex-1 w-full h-full transition-all duration-300 ${showSlidesMenu ? 'mr-96' : ''}`}>
+            <div className="flex-1 w-full h-full">
                 {videoData && (
                     <ShakaPlayer
                         manifestUrl={videoData.stream_url}
@@ -499,32 +485,92 @@ const VideoPlayer = () => {
                 )}
             </div>
 
-            {/* Timeline Panel */}
-            <div className={`fixed top-0 right-0 h-full w-96 bg-background shadow-elevation-3 transform transition-transform duration-300 z-20 ${showSlidesMenu ? 'translate-x-0' : 'translate-x-full'}`}>
-                <div className="flex flex-col h-full">
-                    {/* Header */}
-                    <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-primary/5 to-primary/10">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                <Presentation className="h-4 w-4 text-primary" />
+            {/* Attachments Modal */}
+            <Dialog open={showAttachmentsModal} onOpenChange={setShowAttachmentsModal}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Video Attachments
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="overflow-y-auto max-h-[60vh] p-1">
+                        {attachmentsLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             </div>
-                            <div>
-                                <h3 className="text-lg font-semibold text-foreground">Timeline</h3>
-                                <p className="text-xs text-muted-foreground">
-                                    {slides.length > 0 ? `${slides.length} slides` : 'No slides'}
-                                </p>
+                        ) : attachments.length === 0 ? (
+                            <div className="text-center py-8">
+                                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                <p className="text-muted-foreground">No attachments available for this video.</p>
                             </div>
-                        </div>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowSlidesMenu(false)}
-                            className="text-muted-foreground hover:text-foreground hover:bg-white/10 p-2 h-auto rounded-full transition-all duration-200"
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
+                        ) : (
+                            <div className="space-y-3">
+                                {attachments.map((attachment, index) => {
+                                    const fileUrl = attachment.baseUrl && attachment.key 
+                                        ? (attachment.key.startsWith('http') ? attachment.key : `${attachment.baseUrl}${attachment.key}`)
+                                        : '';
+                                    
+                                    return (
+                                        <Card key={index} className="p-4 border-border/50">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-sm font-medium text-foreground">
+                                                            {attachment.type}
+                                                        </span>
+                                                        {attachment.topic && (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                • {attachment.topic}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground truncate">
+                                                        {attachment.name || `Attachment ${index + 1}`}
+                                                    </p>
+                                                </div>
+                                                <div className="flex gap-1 flex-shrink-0">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => fileUrl && window.open(fileUrl, '_blank', 'noopener,noreferrer')}
+                                                        disabled={!fileUrl}
+                                                        className="text-muted-foreground hover:text-foreground p-1 h-auto"
+                                                        title="View"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => fileUrl && downloadFile(fileUrl, attachment.name || `attachment-${index + 1}`)}
+                                                        disabled={!fileUrl}
+                                                        className="text-muted-foreground hover:text-foreground p-1 h-auto"
+                                                        title="Download"
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
+                </DialogContent>
+            </Dialog>
 
+            {/* Timeline/Slides Modal */}
+            <Dialog open={showSlidesModal} onOpenChange={setShowSlidesModal}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Presentation className="h-5 w-5" />
+                            Timeline
+                        </DialogTitle>
+                    </DialogHeader>
+                    
                     {/* Navigation Controls */}
                     {slides.length > 0 && (
                         <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30">
@@ -559,8 +605,7 @@ const VideoPlayer = () => {
                         </div>
                     )}
 
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-4">
+                    <div className="overflow-y-auto max-h-[70vh] p-4">
                         {slidesLoading ? (
                             <div className="flex items-center justify-center py-8">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -571,7 +616,7 @@ const VideoPlayer = () => {
                                 <p className="text-muted-foreground">No timeline available.</p>
                             </div>
                         ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 {slides.map((slide, index) => (
                                     <div 
                                         key={slide._id || index} 
@@ -644,98 +689,8 @@ const VideoPlayer = () => {
                             </div>
                         )}
                     </div>
-                </div>
-            </div>
-
-            {/* Attachments Modal */}
-            {showAttachmentsMenu && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-background rounded-lg shadow-elevation-3 max-w-2xl w-full max-h-[80vh] overflow-hidden">
-                        {/* Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-border">
-                            <div>
-                                <h2 className="text-lg font-semibold text-foreground">Video Attachments</h2>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    DPP and Notes for this video
-                                </p>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowAttachmentsMenu(false)}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                ×
-                            </Button>
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-6 overflow-y-auto max-h-[60vh]">
-                            {attachmentsLoading ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                                </div>
-                            ) : attachments.length === 0 ? (
-                                <div className="text-center py-8">
-                                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                    <p className="text-muted-foreground">No attachments available for this video.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {attachments.map((attachment, index) => {
-                                        const fileUrl = attachment.baseUrl && attachment.key 
-                                            ? (attachment.key.startsWith('http') ? attachment.key : `${attachment.baseUrl}${attachment.key}`)
-                                            : '';
-                                        
-                                        return (
-                                            <Card key={index} className="p-4 border-border/50">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <FileText className="h-4 w-4 text-primary" />
-                                                            <span className="text-sm font-medium text-foreground">
-                                                                {attachment.type}
-                                                            </span>
-                                                            {attachment.topic && (
-                                                                <span className="text-xs text-muted-foreground">
-                                                                    • {attachment.topic}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-sm text-muted-foreground truncate">
-                                                            {attachment.name || `Attachment ${index + 1}`}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 ml-4">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => fileUrl && window.open(fileUrl, '_blank')}
-                                                            disabled={!fileUrl}
-                                                            className="text-muted-foreground hover:text-foreground"
-                                                        >
-                                                            <Eye className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => fileUrl && downloadFile(fileUrl, attachment.name || `attachment-${index + 1}`)}
-                                                            disabled={!fileUrl}
-                                                            className="text-muted-foreground hover:text-foreground"
-                                                        >
-                                                            <Download className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            </Card>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

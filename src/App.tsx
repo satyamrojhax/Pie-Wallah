@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { useAllowRightClickOnElements } from "@/hooks/useDisableRightClick";
 import Index from "./pages/Index";
 // Import Batches page component
 import Batches from "./pages/Batches";
@@ -93,11 +92,9 @@ const AppContent = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [appError, setAppError] = useState<AppError | null>(null);
   
-  // Disable right-click globally except for video players
-  useAllowRightClickOnElements();
-  
   // Hide footer on video player pages, login, OTP verification, and AI Guru pages
-  const hideFooter = location.pathname.startsWith('/player') || 
+  const hideFooter = location.pathname.startsWith('/watch') || 
+                    location.pathname.startsWith('/player') || 
                     location.pathname === '/login' || 
                     location.pathname === '/otp-verification' ||
                     location.pathname === '/ai-guru';
@@ -328,7 +325,7 @@ const AppContent = () => {
         <Route path="/tictactoe" element={<TicTacToe />} />
         <Route path="/docs" element={<DeveloperDocs />} />
         <Route path="/developer-docs" element={<DeveloperDocs />} />
-        <Route path="/player/:batchId/:subjectId/:childId" element={
+        <Route path="/watch" element={
           <ProtectedRoute>
             <ErrorBoundary>
               <Suspense fallback={<VideoPlayerSkeleton />}>
