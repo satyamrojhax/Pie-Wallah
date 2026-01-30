@@ -35,12 +35,6 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ProfileSkeleton, BatchCardSkeleton, TopicCardSkeleton, VideoPlayerSkeleton } from "./components/ui/skeleton-loaders";
-// Import PrimeHub components
-import PrimeHub from "./pages/PrimeHub";
-import PrimeVideoPlayer from "./pages/PrimeVideoPlayer";
-import PrimeCategories from "./pages/PrimeCategories";
-import PrimeTags from "./pages/PrimeTags";
-import PrimePinEntry from "./pages/PrimePinEntry";
 
 // Error interface for better type safety
 interface AppError {
@@ -333,42 +327,6 @@ const AppContent = () => {
               </Suspense>
             </ErrorBoundary>
           </ProtectedRoute>
-        } />
-        {/* PrimeHub Routes */}
-        <Route path="/primehub/pin" element={
-          <ErrorBoundary>
-            <Suspense fallback={<div>Loading...</div>}>
-              <PrimePinEntry />
-            </Suspense>
-          </ErrorBoundary>
-        } />
-        <Route path="/primehub" element={
-          <ErrorBoundary>
-            <Suspense fallback={<div>Loading...</div>}>
-              <PrimeHub />
-            </Suspense>
-          </ErrorBoundary>
-        } />
-        <Route path="/primehub/video/:videoId" element={
-          <ErrorBoundary>
-            <Suspense fallback={<div>Loading...</div>}>
-              <PrimeVideoPlayer />
-            </Suspense>
-          </ErrorBoundary>
-        } />
-        <Route path="/primehub/categories" element={
-          <ErrorBoundary>
-            <Suspense fallback={<div>Loading...</div>}>
-              <PrimeCategories />
-            </Suspense>
-          </ErrorBoundary>
-        } />
-        <Route path="/primehub/tags" element={
-          <ErrorBoundary>
-            <Suspense fallback={<div>Loading...</div>}>
-              <PrimeTags />
-            </Suspense>
-          </ErrorBoundary>
         } />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />

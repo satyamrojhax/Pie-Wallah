@@ -151,12 +151,11 @@ export const safeFetch = async (url: string, options?: RequestInit): Promise<Res
   }
 
   try {
-    const response = await fetch(url, {
+    const config: RequestInit = {
       ...options,
-      mode: 'cors', // Explicitly set CORS mode
-      credentials: window.location.hostname === 'localhost' ? 'omit' : 'include', // Use omit for localhost to avoid CORS issues
-      signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
-    });
+      mode: 'cors',
+    };
+    const response = await fetch(url, config);
 
     if (!response.ok) {
       // Handle different HTTP status codes

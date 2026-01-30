@@ -825,19 +825,29 @@ const TopicSubjectDetails = () => {
         scheduleDetails.homeworkIds.forEach((homework: any) => {
           if (homework.attachmentIds && homework.attachmentIds.length > 0) {
             homework.attachmentIds.forEach((attachment: any) => {
+              // Determine type based on multiple factors
+              let type = 'Notes';
+              if (homework.note && (
+                homework.note.toLowerCase().includes('dpp') ||
+                homework.note.toLowerCase().includes('practice') ||
+                homework.note.toLowerCase().includes('problem')
+              )) {
+                type = 'DPP';
+              }
+              
               attachments.push({
                 ...attachment,
                 topic: homework.topic,
-                type: homework.note?.toLowerCase().includes('dpp') ? 'DPP' : 'Notes'
+                type: type
               });
             });
           }
         });
       }
       
-      // Extract attachments from DPP homeworks
-      if (scheduleDetails && scheduleDetails.dppHomeworks) {
-        scheduleDetails.dppHomeworks.forEach((homework: any) => {
+      // Extract attachments from DPP section (nested under dpp.homeworkIds)
+      if (scheduleDetails && scheduleDetails.dpp && scheduleDetails.dpp.homeworkIds) {
+        scheduleDetails.dpp.homeworkIds.forEach((homework: any) => {
           if (homework.attachmentIds && homework.attachmentIds.length > 0) {
             homework.attachmentIds.forEach((attachment: any) => {
               attachments.push({

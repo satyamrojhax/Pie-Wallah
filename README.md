@@ -4,6 +4,9 @@
 
 Pie Wallah is a modern educational platform built with React, TypeScript, and Tailwind CSS. It provides students with access to video lectures, study materials, notes, and interactive learning features.
 
+**🚀 Live Demo**: [https://piewallah.vercel.app/]
+**📦 Repository**: [https://github.com/satyamrojhax/piewallahapp](https://github.com/satyamrojhax/piewallahapp)
+
 **Key Features:**
 - 🎥 Advanced video player with Shaka Player integration
 - 📚 Comprehensive study materials and notes
@@ -11,6 +14,8 @@ Pie Wallah is a modern educational platform built with React, TypeScript, and Ta
 - 📱 Fully responsive mobile design
 - 🔐 Secure authentication system
 - 🎯 Topic-wise content organization
+- 🌐 Cross-origin video streaming support
+- ⚡ Optimized performance and loading
 
 ## Development Setup
 
@@ -24,10 +29,10 @@ Follow these steps to set up the project locally:
 
 ```sh
 # Step 1: Clone the repository
-git clone https://github.com/your-username/piewallah.git
+git clone https://github.com/satyamrojhax/piewallahapp.git
 
 # Step 2: Navigate to the project directory
-cd piewallah
+cd piewallahapp
 
 # Step 3: Install dependencies
 npm install
@@ -166,13 +171,54 @@ The application uses secure token-based authentication with proper header manage
 - CORS protection
 - Rate limiting support
 
+## Quick Start
+
+### One-Click Setup
+```bash
+# Clone and setup in one command
+git clone https://github.com/satyamrojhax/piewallahapp.git && cd piewallahapp && npm install && npm run dev
+```
+
+### Docker Quick Start
+```bash
+# Build and run with Docker
+docker build -t piewallah .
+docker run -p 3000:3000 piewallah
+```
+
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+We welcome contributions! Here's how to get started:
+
+1. **Fork the Repository**
+   ```bash
+   # Fork on GitHub and clone your fork
+   git clone https://github.com/your-username/piewallahapp.git
+   ```
+
+2. **Create a Feature Branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+
+3. **Make Changes**
+   - Follow the existing code style
+   - Add tests if applicable
+   - Update documentation
+
+4. **Submit Pull Request**
+   ```bash
+   git commit -m 'Add amazing feature'
+   git push origin feature/amazing-feature
+   # Open PR on GitHub
+   ```
+
+### Development Guidelines
+- Use TypeScript for all new code
+- Follow the existing component structure
+- Test on mobile and desktop
+- Ensure video playback works
+- Update documentation for new features
 
 ## License
 

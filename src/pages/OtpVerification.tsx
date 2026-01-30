@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { verifyOtp, sendOtp, resendOtp, sendWhatsAppOtp, sendCallOtp } from "@/lib/auth";
 import { ShieldCheck, ArrowLeft, Shield, Timer, PencilLine, MessageCircle, Phone } from "lucide-react";
 import { hasUserSelectedClasses } from "@/services/cohortService";
+import { useAuth } from "@/contexts/AuthContext";
 
 const OtpVerification = () => {
     const [otp, setOtp] = useState("");
@@ -15,6 +16,7 @@ const OtpVerification = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const mobileNumber = location.state?.mobileNumber;
+    const { checkAuth } = useAuth();
 
     useEffect(() => {
         if (!mobileNumber) {
@@ -29,16 +31,7 @@ const OtpVerification = () => {
         return () => clearInterval(timer);
     }, [mobileNumber, navigate]);
 
-    // Auto-verify OTP when 6 digits are entered
-    useEffect(() => {
-        if (otp.length === 6 && !isLoading) {
-            // Add a small delay to allow the user to see the last digit
-            const timer = setTimeout(() => {
-                handleVerify();
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [otp, isLoading]);
+    // Auto-verify removed - user must manually click verify button
 
     const handleVerify = async () => {
         if (otp.length !== 6) {
@@ -47,6 +40,13 @@ const OtpVerification = () => {
         }
 
         setIsLoading(true);
+        
+        // Show verification message and wait 3 seconds
+        toast.loading("Please wait we're verifying your OTP...", { duration: 3000 });
+        
+        // Add 3-second delay
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
         try {
             const response = await verifyOtp(mobileNumber, otp);
             const authToken = response.access_token || response.data?.access_token || response.token;
@@ -54,13 +54,20 @@ const OtpVerification = () => {
             if (authToken) {
                 localStorage.setItem("param_auth_token", authToken);
                 toast.success("Login Successful!");
-                navigate("/"); // Go directly to home after login
+                
+                // Immediately update authentication state
+                await checkAuth();
+                
+                // Small delay to ensure state is updated before navigation
+                setTimeout(() => {
+                    navigate("/");
+                }, 100);
             } else {
                 throw new Error("Token not found in response");
             }
 
         } catch (error) {
-            toast.error("Invalid OTP or Verification failed");
+            toast.error("Wrong OTP");
         } finally {
             setIsLoading(false);
         }
@@ -112,7 +119,8 @@ const OtpVerification = () => {
     };
 
     const handleEditNumber = () => {
-        navigate("/login");
+        // Mobile number editing disabled as requested
+        toast.error("Mobile number cannot be edited after OTP is sent");
     }
 
     return (
@@ -190,33 +198,33 @@ const OtpVerification = () => {
                             <h2 className="text-3xl font-bold tracking-tight">Verify Details</h2>
                             <div className="flex items-center justify-center gap-2 text-muted-foreground">
                                 <span>OTP sent to +91 {mobileNumber}</span>
-                                <button onClick={handleEditNumber} className="text-primary hover:text-primary-hover p-1 rounded-full hover:bg-primary/10 transition-colors" title="Edit Number">
-                                    <PencilLine className="h-4 w-4" />
-                                </button>
+                                {/* Edit button removed - mobile number cannot be edited */}
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-6">
-                            <div className="flex justify-center py-4">
-                                <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                                    <InputOTPGroup className="gap-2 sm:gap-4">
-                                        <InputOTPSlot index={0} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
-                                        <InputOTPSlot index={1} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
-                                        <InputOTPSlot index={2} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
-                                        <InputOTPSlot index={3} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
-                                        <InputOTPSlot index={4} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
-                                        <InputOTPSlot index={5} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
-                                    </InputOTPGroup>
-                                </InputOTP>
-                            </div>
+                            <form onSubmit={(e) => { e.preventDefault(); handleVerify(); }}>
+                                <div className="flex justify-center py-4">
+                                    <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                                        <InputOTPGroup className="gap-2 sm:gap-4">
+                                            <InputOTPSlot index={0} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
+                                            <InputOTPSlot index={1} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
+                                            <InputOTPSlot index={2} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
+                                            <InputOTPSlot index={3} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
+                                            <InputOTPSlot index={4} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
+                                            <InputOTPSlot index={5} className="rounded-md border-2 border-input h-12 w-10 sm:w-12 text-lg focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all font-semibold" />
+                                        </InputOTPGroup>
+                                    </InputOTP>
+                                </div>
 
-                            <Button
-                                className="w-full h-12 text-base font-semibold bg-gradient-primary hover:opacity-90 transition-all shadow-md hover:shadow-lg"
-                                onClick={handleVerify}
-                                disabled={isLoading || otp.length !== 6}
-                            >
-                                {isLoading ? "Verifying..." : "Verify & Continue"}
-                            </Button>
+                                <Button
+                                    type="submit"
+                                    className="w-full h-12 text-base font-semibold bg-gradient-primary hover:opacity-90 transition-all shadow-md hover:shadow-lg"
+                                    disabled={isLoading || otp.length !== 6}
+                                >
+                                    {isLoading ? "Verifying..." : "Verify & Continue"}
+                                </Button>
+                            </form>
 
                             <div className="text-center space-y-3">
                                 {resendTimer > 0 ? (

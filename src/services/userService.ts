@@ -90,6 +90,7 @@ const internalFetch = async (url: string, options?: RequestInit): Promise<Respon
 
   return fetch(url, {
     ...options,
+    mode: 'cors',
     headers: {
       ...getCommonHeaders(),
       "authorization": `Bearer ${token}`,

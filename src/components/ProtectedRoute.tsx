@@ -24,9 +24,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
     if (!isAuthenticated) {
         // Only show toast if we're actually redirecting from a protected page
-        if (location.pathname !== "/login" && location.pathname !== "/otp-verification") {
+        // and not from login/otp pages to avoid confusing messages
+        const fromProtectedPage = !["/login", "/otp-verification"].includes(location.pathname);
+        
+        if (fromProtectedPage) {
             toast.error("Session expired. Please login again.");
         }
+        
         return <Navigate to="/login" replace state={{ from: location }} />;
     }
 

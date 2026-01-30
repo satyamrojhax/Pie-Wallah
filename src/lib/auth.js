@@ -46,6 +46,7 @@ export const getCommonHeaders = () => {
 export const sendOtp = async (mobileNumber) => {
     const response = await fetch(`${AUTH_CONFIG.BASE_URL_V1}/users/get-otp?smsType=0&fallback=true`, {
         method: "POST",
+        mode: "cors",
         headers: getCommonHeaders(),
         body: JSON.stringify({
             username: mobileNumber,
@@ -64,6 +65,7 @@ export const sendOtp = async (mobileNumber) => {
 export const verifyOtp = async (mobileNumber, otp) => {
     const response = await fetch(`${AUTH_CONFIG.BASE_URL_V3}/oauth/token`, {
         method: "POST",
+        mode: "cors",
         headers: getCommonHeaders(),
         body: JSON.stringify({
             username: mobileNumber,
@@ -136,6 +138,7 @@ export const validateAndRefreshToken = async () => {
 export const resendOtp = async (mobileNumber) => {
     const response = await fetch(`${AUTH_CONFIG.BASE_URL_V1}/users/resend-otp?smsType=0`, {
         method: "POST",
+        mode: "cors",
         headers: getCommonHeaders(),
         body: JSON.stringify({
             mobile: mobileNumber,
@@ -153,6 +156,7 @@ export const resendOtp = async (mobileNumber) => {
 export const sendWhatsAppOtp = async (mobileNumber) => {
     const response = await fetch(`${AUTH_CONFIG.BASE_URL_V1}/users/resend-otp?smsType=1`, {
         method: "POST",
+        mode: "cors",
         headers: getCommonHeaders(),
         body: JSON.stringify({
             mobile: mobileNumber,
@@ -170,6 +174,7 @@ export const sendWhatsAppOtp = async (mobileNumber) => {
 export const sendCallOtp = async (mobileNumber) => {
     const response = await fetch(`${AUTH_CONFIG.BASE_URL_V1}/users/resend-otp?smsType=2`, {
         method: "POST",
+        mode: "cors",
         headers: getCommonHeaders(),
         body: JSON.stringify({
             mobile: mobileNumber,
@@ -187,6 +192,7 @@ export const sendCallOtp = async (mobileNumber) => {
 export const getUserProfile = async (token) => {
     const response = await fetch(`${AUTH_CONFIG.BASE_URL_V3}/users?landingPage=true`, {
         method: "GET",
+        mode: "cors",
         headers: {
             ...getCommonHeaders(),
             "authorization": `Bearer ${token}`,
@@ -233,6 +239,7 @@ export const refreshAuthToken = async () => {
     try {
         const response = await fetch(`${AUTH_CONFIG.BASE_URL_V3}/oauth/token`, {
             method: "POST",
+            mode: "cors",
             headers: getCommonHeaders(),
             body: JSON.stringify({
                 grant_type: "refresh_token",

@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Home, Radio, FileText, MessageSquare, Bot, Gamepad2, User, Book, Shield, AlertTriangle } from "lucide-react";
+import { Home, Radio, FileText, MessageSquare, Bot, Gamepad2, User, Book } from "lucide-react";
 import { BatchesIcon, StudyIcon } from "@/components/icons/CustomIcons";
 
 export type PrimaryNavLink = {
@@ -13,8 +13,6 @@ export type SidebarNavLink = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   showInBottomNav?: boolean;
-  requiresPin?: boolean;
-  pinCode?: string;
 };
 
 // Bottom navigation - essential items
@@ -37,14 +35,6 @@ export const sidebarNavLinks: SidebarNavLink[] = [
   { path: "/my-batches", label: "My Batches", icon: Book, showInBottomNav: true },
   { path: "/tictactoe", label: "Tic-Tac-Toe", icon: Gamepad2, showInBottomNav: false },
   { path: "/profile", label: "Profile", icon: User, showInBottomNav: true },
-  { 
-    path: "/primehub", 
-    label: "PrimeHub", 
-    icon: AlertTriangle, 
-    showInBottomNav: false,
-    requiresPin: true,
-    pinCode: "2000"
-  },
 ];
 
 // Legacy compatibility

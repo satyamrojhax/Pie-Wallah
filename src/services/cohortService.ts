@@ -61,6 +61,7 @@ const internalFetch = async (url: string, options?: RequestInit): Promise<Respon
 
   return fetch(url, {
     ...options,
+    mode: 'cors',
     headers: {
       ...getCommonHeaders(),
       "authorization": `Bearer ${token}`,
@@ -285,6 +286,7 @@ export const fetchRecentCohorts = async (): Promise<RecentCohortsResponse> => {
     }
 
     const response = await fetch(`${COHORT_API_BASE}/cohort/recent-cohorts`, {
+      mode: 'cors',
       headers: {
         ...getCommonHeaders(),
         "authorization": `Bearer ${token}`,
@@ -316,6 +318,7 @@ export const fetchCohortBatches = async (
     const response = await fetch(
       `${BATCH_API_BASE}/cohort/${cohortId}/widgets/all-courses?page=${page}`,
       {
+        mode: 'cors',
         headers: {
           ...getCommonHeaders(),
           "authorization": `Bearer ${token}`,
@@ -398,6 +401,7 @@ export const getCohortDetails = async (cohortId: string) => {
     const response = await fetch(
       `https://api.penpencil.co/student-engagement-core/private/v1/nebula/client/${cohortId}/get-cohort`,
       {
+        mode: 'cors',
         headers: {
           ...getCommonHeaders(),
           "authorization": `Bearer ${token}`,

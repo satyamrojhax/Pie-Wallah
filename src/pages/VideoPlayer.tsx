@@ -141,26 +141,43 @@ const VideoPlayer = () => {
         setAttachmentsLoading(true);
         try {
             const scheduleDetails = await fetchScheduleDetails(batchId, subjectId, childId);
+            console.log('Schedule Details:', scheduleDetails);
             const attachmentsList: any[] = [];
             
             // Extract attachments from regular homeworkIds (notes)
             if (scheduleDetails && scheduleDetails.homeworkIds) {
-                scheduleDetails.homeworkIds.forEach((homework: any) => {
+                console.log('Homework IDs:', scheduleDetails.homeworkIds);
+                scheduleDetails.homeworkIds.forEach((homework: any, index: number) => {
+                    console.log(`Homework ${index}:`, homework);
                     if (homework.attachmentIds && homework.attachmentIds.length > 0) {
                         homework.attachmentIds.forEach((attachment: any) => {
+                            // Determine type based on multiple factors
+                            let type = 'Notes';
+                            if (homework.note && (
+                                homework.note.toLowerCase().includes('dpp') ||
+                                homework.note.toLowerCase().includes('practice') ||
+                                homework.note.toLowerCase().includes('problem')
+                            )) {
+                                type = 'DPP';
+                            }
+                            
+                            console.log(`Attachment type: ${type}, note: ${homework.note}`);
+                            
                             attachmentsList.push({
                                 ...attachment,
                                 topic: homework.topic,
-                                type: homework.note?.toLowerCase().includes('dpp') ? 'DPP' : 'Notes'
+                                type: type
                             });
                         });
                     }
                 });
             }
             
-            // Extract attachments from DPP homeworks
-            if (scheduleDetails && scheduleDetails.dppHomeworks) {
-                scheduleDetails.dppHomeworks.forEach((homework: any) => {
+            // Extract attachments from DPP section (nested under dpp.homeworkIds)
+            if (scheduleDetails && scheduleDetails.dpp && scheduleDetails.dpp.homeworkIds) {
+                console.log('DPP Homeworks:', scheduleDetails.dpp.homeworkIds);
+                scheduleDetails.dpp.homeworkIds.forEach((homework: any, index: number) => {
+                    console.log(`DPP Homework ${index}:`, homework);
                     if (homework.attachmentIds && homework.attachmentIds.length > 0) {
                         homework.attachmentIds.forEach((attachment: any) => {
                             attachmentsList.push({
@@ -173,6 +190,7 @@ const VideoPlayer = () => {
                 });
             }
             
+            console.log('Final attachments list:', attachmentsList);
             setAttachments(attachmentsList);
         } catch (error) {
             console.error('Failed to fetch attachments:', error);

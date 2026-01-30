@@ -90,7 +90,8 @@ const internalFetch = async (url: string, method: string = 'GET', body?: any): P
   const config: RequestInit = {
     method,
     headers,
-    credentials: 'include'
+    mode: 'cors',
+    credentials: 'omit' // Fix CORS issues
   };
 
   if (body && method !== 'GET') {

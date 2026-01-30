@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { X, Grid3x3, Github, Linkedin, Instagram, Twitter, AlertTriangle, Shield, Lock } from "lucide-react";
+import { X, Grid3x3, Github, Linkedin, Instagram, Twitter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { sidebarNavLinks, bottomNavLinks } from "@/constants/navigation";
@@ -33,16 +33,10 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({ hasEnrolledBatches = fals
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Handle navigation with PIN protection
+  // Handle navigation
   const handleNavigation = (path: string, link: any) => {
-    if (link.requiresPin) {
-      // Redirect to PIN entry page with intended destination
-      navigate("/primehub/pin", { state: { from: path } });
-      setIsOpen(false);
-    } else {
-      navigate(path);
-      setIsOpen(false);
-    }
+    navigate(path);
+    setIsOpen(false);
   };
 
   // Filter navigation based on enrollment status
@@ -102,9 +96,6 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({ hasEnrolledBatches = fals
                   >
                     <link.icon className="h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" />
                     <span className="flex-1 transition-all duration-300">{link.label}</span>
-                    {link.requiresPin && (
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                    )}
                     {isActive(link.path) && (
                       <div className="h-2 w-2 rounded-full bg-current transition-all duration-300" />
                     )}

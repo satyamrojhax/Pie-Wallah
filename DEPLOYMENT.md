@@ -4,6 +4,10 @@
 
 This guide covers deployment options for the Pie Wallah educational platform, including Vercel, Netlify, and Docker deployments.
 
+**📦 Repository**: [https://github.com/satyamrojhax/piewallahapp](https://github.com/satyamrojhax/piewallahapp)
+**📖 Documentation**: [README.md](./README.md)
+**🚀 Live Demo**: [https://piewallah.vercel.app/](https://piewallah.vercel.app/)
+
 ## Prerequisites
 
 ### General Requirements
@@ -17,13 +21,30 @@ This guide covers deployment options for the Pie Wallah educational platform, in
 - **Docker**: Docker installed and configured
 - **Custom**: Web server with Node.js support
 
-## Deployment Steps
+## Quick Deployment Options
 
-### 1. Push Changes to GitHub
+### 1. Vercel (Recommended)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/satyamrojhax/piewallahapp)
+
+### 2. Netlify
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/satyamrojhax/piewallahapp)
+
+### 3. Railway
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/satyamrojhax/piewallahapp)
+
+## Manual Deployment Steps
+
+### 1. Clone and Setup
 ```bash
-git add .
-git commit -m "Configure for Vercel deployment with video streaming support"
-git push origin main
+# Clone the repository
+git clone https://github.com/satyamrojhax/piewallahapp.git
+cd piewallahapp
+
+# Install dependencies
+npm install
+
+# Test build locally
+npm run build
 ```
 
 ### 2. Environment Variables
@@ -284,14 +305,61 @@ docker logs <container-id>
 
 ---
 
-**Deployment Checklist**:
-- [ ] Environment variables configured
-- [ ] Build process tested locally
-- [ ] Video streaming tested
-- [ ] Authentication working
-- [ ] Mobile responsive
-- [ ] Performance optimized
-- [ ] Security headers set
-- [ ] Monitoring configured
+## Deployment Checklist
 
-For additional support, contact the development team or check the project documentation.
+### Pre-Deployment ✅
+- [ ] Repository cloned from `https://github.com/satyamrojhax/piewallahapp.git`
+- [ ] Dependencies installed (`npm install`)
+- [ ] Build tested locally (`npm run build`)
+- [ ] Environment variables configured
+- [ ] Video streaming tested locally
+
+### Post-Deployment ✅
+- [ ] Application loads successfully
+- [ ] Video playback working
+- [ ] Authentication functioning
+- [ ] Mobile responsive design
+- [ ] Performance optimized
+- [ ] Security headers configured
+- [ ] Monitoring and analytics set up
+
+### Platform-Specific Checks
+- **Vercel**: [ ] Environment variables set in dashboard
+- **Netlify**: [ ] Build settings configured
+- **Docker**: [ ] Container running and accessible
+- **Custom**: [ ] Web server configured correctly
+
+## Support & Resources
+
+### 📚 Documentation
+- **Project README**: [README.md](./README.md)
+- **API Documentation**: Available in project source
+- **Component Documentation**: Inline code comments
+
+### 🆘 Getting Help
+- **Issues**: [GitHub Issues](https://github.com/satyamrojhax/piewallahapp/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/satyamrojhax/piewallahapp/discussions)
+- **Email**: epowerxlabs@gmail.com
+- **Developer**: [Satyam RojhaX](https://instagram.com/satyamrojha.dev)
+
+### 🚀 Deployment Services
+- **Vercel**: [vercel.com](https://vercel.com)
+- **Netlify**: [netlify.com](https://netlify.com)
+- **Railway**: [railway.app](https://railway.app)
+- **DigitalOcean**: [digitalocean.com](https://digitalocean.com)
+
+### 📊 Monitoring Tools
+- **Vercel Analytics**: Built-in performance monitoring
+- **Google Analytics**: User behavior tracking
+- **Sentry**: Error tracking and reporting
+- **Lighthouse**: Performance auditing
+
+---
+
+**🎉 Ready to Deploy!**
+
+Your Pie Wallah educational platform is now ready for deployment. Follow the platform-specific guides above or use the one-click deployment options for the fastest setup.
+
+For production deployments, ensure all environment variables are properly configured and security measures are in place.
+
+**Happy Deploying! 🚀**

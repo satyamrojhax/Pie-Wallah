@@ -25,7 +25,7 @@ const VideoDataNotFound = () => {
           </p>
           <div className="space-y-3">
             <Button asChild className="bg-gradient-primary hover:opacity-90 w-full">
-              <a href="/prime-hub" className="inline-block">
+              <a href="/study" className="inline-block">
                 Browse Videos
               </a>
             </Button>
