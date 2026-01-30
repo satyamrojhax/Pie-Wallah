@@ -7,6 +7,9 @@ services:
     buildCommand: npm run build
     staticPublishPath: ./dist
     routes:
+      - source: /assets/(.*)
+        destination: /assets/$1
+        type: file
       - source: /(.*)
         destination: /index.html
         type: rewrite
