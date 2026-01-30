@@ -56,7 +56,30 @@ const internalFetch = async (url: string, options?: RequestInit): Promise<Respon
   const token = getAuthToken();
   
   if (!token) {
+    // Redirect to login if no token
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
     throw new Error("Authentication required");
+  }
+
+  // Check if token is expired before making request
+  const expiresAt = localStorage.getItem("token_expires_at") || sessionStorage.getItem("token_expires_at");
+  if (expiresAt && Date.now() >= parseInt(expiresAt)) {
+    // Token expired - clear and redirect
+    localStorage.removeItem("param_auth_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("token_expires_at");
+    localStorage.removeItem("user_data");
+    sessionStorage.removeItem("param_auth_token");
+    sessionStorage.removeItem("refresh_token");
+    sessionStorage.removeItem("token_expires_at");
+    sessionStorage.removeItem("user_data");
+    
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
+    throw new Error("Token expired");
   }
 
   return fetch(url, {

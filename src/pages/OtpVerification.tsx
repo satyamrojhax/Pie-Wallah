@@ -49,21 +49,44 @@ const OtpVerification = () => {
         
         try {
             const response = await verifyOtp(mobileNumber, otp);
-            const authToken = response.access_token || response.data?.access_token || response.token;
-
-            if (authToken) {
-                localStorage.setItem("param_auth_token", authToken);
-                toast.success("Login Successful!");
+            
+            // Store complete authentication data from response
+            if (response?.data) {
+                const { access_token, refresh_token, expires_in, user } = response.data;
                 
-                // Immediately update authentication state
-                await checkAuth();
-                
-                // Small delay to ensure state is updated before navigation
-                setTimeout(() => {
-                    navigate("/");
-                }, 100);
+                if (access_token) {
+                    // Store all auth data in localStorage
+                    localStorage.setItem("param_auth_token", access_token);
+                    localStorage.setItem("refresh_token", refresh_token || "");
+                    localStorage.setItem("token_expires_at", String(Date.now() + (expires_in || 3600) * 1000));
+                    
+                    // Store complete user data
+                    if (user) {
+                        localStorage.setItem("user_data", JSON.stringify(user));
+                    }
+                    
+                    // Also store in sessionStorage for backup
+                    sessionStorage.setItem("param_auth_token", access_token);
+                    sessionStorage.setItem("refresh_token", refresh_token || "");
+                    sessionStorage.setItem("token_expires_at", String(Date.now() + (expires_in || 3600) * 1000));
+                    if (user) {
+                        sessionStorage.setItem("user_data", JSON.stringify(user));
+                    }
+                    
+                    toast.success("Login Successful!");
+                    
+                    // Immediately update authentication state
+                    await checkAuth();
+                    
+                    // Navigate after successful auth
+                    setTimeout(() => {
+                        navigate("/");
+                    }, 100);
+                } else {
+                    throw new Error("Token not found in response");
+                }
             } else {
-                throw new Error("Token not found in response");
+                throw new Error("Invalid response format");
             }
 
         } catch (error) {

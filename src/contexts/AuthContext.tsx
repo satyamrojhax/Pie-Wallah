@@ -49,26 +49,41 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  // Enhanced token validation that redirects to login
+  const validateTokenAndRedirect = () => {
+    if (!isTokenValid()) {
+      logout();
+      return false;
+    }
+    return true;
+  };
+
   const logoutUser = () => {
     handleAuthError();
     setIsAuthenticated(false);
     setUser(null);
   };
 
-  // Auto-logout system removed as requested
+  // Only check auth on initial mount, not on every render
+  useEffect(() => {
+    // Check authentication on mount only
+    checkAuth();
+  }, []);
 
-  // Multi-tab logout listener removed as requested
-
-  // Online/offline event listeners simplified - no auto-logout
+  // Handle online/offline events - preserve tokens in localStorage
   useEffect(() => {
     const handleOffline = () => {
-      // User went offline - just show offline state
-      console.log('User is offline');
+      console.log('User is offline - app will be blocked, but tokens remain in localStorage');
+      // Don't logout - just log the state
     };
 
     const handleOnline = () => {
-      // User came back online
-      console.log('User is online');
+      console.log('User is back online - checking token validity');
+      // When user comes back online, check if token is still valid
+      if (isAuthenticated && !isTokenValid()) {
+        console.log('Token expired while offline, logging out...');
+        logoutUser();
+      }
     };
 
     window.addEventListener('offline', handleOffline);
@@ -78,12 +93,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('online', handleOnline);
     };
-  }, []);
+  }, [isAuthenticated]);
 
+  // Minimal periodic token validation (every 10 minutes) for security - only when online
   useEffect(() => {
-    // Check authentication on mount only
-    checkAuth();
-  }, []);
+    const interval = setInterval(() => {
+      // Only check if user is online to avoid unnecessary checks
+      if (navigator.onLine && isAuthenticated && !isTokenValid()) {
+        console.log('Token expired during periodic check, logging out...');
+        logoutUser();
+      }
+    }, 10 * 60 * 1000); // 10 minutes
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const value: AuthContextType = {
     isAuthenticated,

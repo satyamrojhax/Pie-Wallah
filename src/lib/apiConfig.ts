@@ -145,7 +145,7 @@ export const getAttachmentsApiUrl = (endpoint: string, params?: Record<string, s
 
 // Safe fetch wrapper with error handling and offline support
 export const safeFetch = async (url: string, options?: RequestInit): Promise<Response> => {
-  // Check if offline
+  // Check if offline - don't make requests
   if (!navigator.onLine) {
     throw new Error('OFFLINE_MODE: No internet connection available');
   }
@@ -161,6 +161,21 @@ export const safeFetch = async (url: string, options?: RequestInit): Promise<Res
       // Handle different HTTP status codes
       switch (response.status) {
         case 401:
+          // Token expired or invalid - clear auth and redirect to login
+          localStorage.removeItem("param_auth_token");
+          localStorage.removeItem("refresh_token");
+          localStorage.removeItem("token_expires_at");
+          localStorage.removeItem("user_data");
+          sessionStorage.removeItem("param_auth_token");
+          sessionStorage.removeItem("refresh_token");
+          sessionStorage.removeItem("token_expires_at");
+          sessionStorage.removeItem("user_data");
+          
+          // Redirect to login if not already there
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          
           throw new Error('UNAUTHORIZED: Please login again');
         case 403:
           throw new Error('FORBIDDEN: You don\'t have permission to access this resource');

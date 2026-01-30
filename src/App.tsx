@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider } from "@/contexts/AuthContext";
+import OfflineBlocker from "@/components/OfflineBlocker";
 import Index from "./pages/Index";
 // Import Batches page component
 import Batches from "./pages/Batches";
@@ -365,7 +366,9 @@ const App = () => {
             <Sonner />
             <PWAInstallPrompt />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-              <AppContent />
+              <OfflineBlocker>
+                <AppContent />
+              </OfflineBlocker>
             </BrowserRouter>
           </AuthProvider>
         </TooltipProvider>

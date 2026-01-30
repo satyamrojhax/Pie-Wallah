@@ -297,6 +297,50 @@ export const handleAuthError = (): void => {
     logout();
 };
 
+// Check token and redirect to login if expired
+export const checkTokenAndRedirect = (): boolean => {
+    if (!isTokenValid()) {
+        console.log('Token expired or invalid, redirecting to login...');
+        logout();
+        return false;
+    }
+    return true;
+};
+
+// Enhanced API call wrapper with token validation
+export const authenticatedFetch = async (url: string, options?: RequestInit): Promise<Response> => {
+    // Check token validity before making request
+    if (!checkTokenAndRedirect()) {
+        throw new Error('Token expired - redirecting to login');
+    }
+
+    try {
+        const response = await fetch(url, options);
+        
+        // Handle 401/403 responses - token might be expired/invalid
+        if (response.status === 401 || response.status === 403) {
+            console.log('Received auth error response, logging out...');
+            logout();
+            throw new Error('Authentication failed - token expired');
+        }
+        
+        return response;
+    } catch (error) {
+        // If it's already an auth error, don't double-handle
+        if (error instanceof Error && (error.message.includes('Token expired') || error.message.includes('Authentication failed'))) {
+            throw error;
+        }
+        
+        // For other errors, check if token might be the issue
+        if (!isTokenValid()) {
+            logout();
+            throw new Error('Token expired during request');
+        }
+        
+        throw error;
+    }
+};
+
 export const getStoredUserData = () => {
     const userData = localStorage.getItem("user_data") || sessionStorage.getItem("user_data");
     return userData ? JSON.parse(userData) : null;
