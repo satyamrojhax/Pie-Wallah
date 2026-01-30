@@ -1,5 +1,4 @@
 import { getAuthToken, getCommonHeaders } from '@/lib/auth';
-import { firebaseServices, type FirebaseChatMessage } from '@/lib/firebaseServices';
 
 const NEBULA_BASE = 'https://api.penpencil.co/student-engagement-core/private/v1/nebula';
 const NEBULA_V1_BASE = 'https://api.penpencil.co/v1/nebula';
@@ -255,25 +254,6 @@ export const fetchMessages = async (conversationId: string, limit: number = 10, 
 
 export const sendMessage = async (payload: SendMessagePayload): Promise<{ success: boolean; data: any }> => {
   try {
-    // Save user message to Firebase first
-    try {
-      await firebaseServices.chat.saveMessage({
-        conversationId: payload.conversation_id,
-        text: payload.text,
-        authorId: 'user', // Current user
-        authorMetadata: {
-          first_name: payload.student_metadata.first_name,
-          last_name: payload.student_metadata.last_name,
-          profile_pic: '',
-          classes: payload.student_metadata.classes,
-          exam: payload.student_metadata.exam
-        },
-        messageType: 'human'
-      });
-    } catch (firebaseError) {
-      // Failed to save message to Firebase
-    }
-
     // Send to API
     const response = await fetch(`${NEBULA_V1_BASE}/conversation`, {
       method: 'POST',
@@ -293,30 +273,7 @@ export const sendMessage = async (payload: SendMessagePayload): Promise<{ succes
       throw new Error("Failed to send message");
     }
 
-    const result = await response.json();
-
-    // Save AI response to Firebase if available
-    if (result.success && result.data) {
-      try {
-        await firebaseServices.chat.saveMessage({
-          conversationId: payload.conversation_id,
-          text: result.data.text || result.data.message || '',
-          authorId: 'ai-guru',
-          authorMetadata: {
-            first_name: 'AI',
-            last_name: 'Guru',
-            profile_pic: '',
-            classes: payload.student_metadata.classes,
-            exam: payload.student_metadata.exam
-          },
-          messageType: 'ai'
-        });
-      } catch (firebaseError) {
-        // Failed to save AI response to Firebase
-      }
-    }
-
-    return result;
+    return await response.json();
   } catch (error) {
     throw error;
   }
@@ -485,18 +442,6 @@ export const getFeedbackOptions = async (rateType: string): Promise<{ success: b
   }
 };
 
-export const getFirebaseChatMessages = async (conversationId: string): Promise<FirebaseChatMessage[]> => {
-  try {
-    return await firebaseServices.chat.getConversationMessages(conversationId);
-  } catch (error) {
-    // Failed to get Firebase chat messages
-    return [];
-  }
-};
-
-export const subscribeToFirebaseChat = (conversationId: string, callback: (messages: FirebaseChatMessage[]) => void) => {
-  return firebaseServices.chat.subscribeToConversation(conversationId, callback);
-};
 
 // Utility function to get user metadata from localStorage
 export const getUserMetadata = (): StudentMetadata => {

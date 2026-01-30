@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Calendar, Languages, GraduationCap } from "lucide-react";
+import { BookOpen, Calendar, Languages, GraduationCap, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { useState, useEffect } from "react";
@@ -27,7 +27,7 @@ const MyBatches = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load enrolled batches from Firebase/localStorage
+    // Load enrolled batches from localStorage
     const loadBatches = async () => {
       try {
         setIsLoading(true);
@@ -200,6 +200,15 @@ const MyBatches = () => {
                         Continue Learning
                       </Button>
                     </Link>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleUnenroll(batch._id, batch.name)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                      title="Unenroll from batch"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </Card>

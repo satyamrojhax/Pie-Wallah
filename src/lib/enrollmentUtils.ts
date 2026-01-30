@@ -1,5 +1,4 @@
-// Utility functions for managing enrolled batches in localStorage and Firebase
-import { firebaseServices } from './firebaseServices';
+// Utility functions for managing enrolled batches in localStorage
 
 export type EnrolledBatch = {
     _id: string;
@@ -22,44 +21,7 @@ export { MAX_ENROLLMENTS };
 
 export const getEnrolledBatches = async (): Promise<EnrolledBatch[]> => {
     try {
-        // First try to get from Firebase for cross-device sync
-        try {
-            const firebaseBatches = await firebaseServices.batchEnrollment.getEnrolledBatches();
-            if (firebaseBatches.length > 0) {
-                // Update localStorage with Firebase data
-                const localStorageBatches = firebaseBatches.map(batch => ({
-                    _id: batch._id,
-                    name: batch.name,
-                    previewImage: batch.previewImage,
-                    language: batch.language,
-                    class: batch.class,
-                    startDate: batch.startDate,
-                    endDate: batch.endDate,
-                    enrolledAt: batch.enrolledAt
-                }));
-                
-                // Remove duplicates by _id and keep the latest (by enrolledAt)
-                const uniqueBatches = localStorageBatches.reduce((acc: EnrolledBatch[], batch) => {
-                    const existingIndex = acc.findIndex(b => b._id === batch._id);
-                    if (existingIndex === -1) {
-                        acc.push(batch);
-                    } else {
-                        // Keep the one with the latest enrolledAt
-                        if (new Date(batch.enrolledAt) > new Date(acc[existingIndex].enrolledAt)) {
-                            acc[existingIndex] = batch;
-                        }
-                    }
-                    return acc;
-                }, []);
-                
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(uniqueBatches));
-                return uniqueBatches;
-            }
-        } catch (firebaseError) {
-            // Firebase failed, fall back to localStorage
-        }
-        
-        // Fall back to localStorage with deduplication
+        // Get from localStorage
         const stored = localStorage.getItem(STORAGE_KEY);
         const localStorageBatches = stored ? JSON.parse(stored) : [];
         
@@ -110,28 +72,17 @@ export const enrollInBatch = async (batch: Omit<EnrolledBatch, 'enrolledAt'>): P
             };
         }
 
-        // Save to Firebase first - this is the primary source
-        try {
-            await firebaseServices.batchEnrollment.enrollBatch(batch);
-            
-            // After successful Firebase save, trigger a refresh of local data
-            // This ensures consistency between Firebase and localStorage
-            await getEnrolledBatches(); // This will sync Firebase data to localStorage
-            
-            return { success: true, message: "Successfully enrolled" };
-        } catch (firebaseError) {
-            // Fallback: Save to localStorage only if Firebase fails
-            const newBatch: EnrolledBatch = {
-                ...batch,
-                enrolledAt: new Date().toISOString(),
-            };
-            
-            const currentBatches = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            currentBatches.push(newBatch);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(currentBatches));
-            
-            return { success: true, message: "Successfully enrolled (local only)" };
-        }
+        // Save to localStorage
+        const newBatch: EnrolledBatch = {
+            ...batch,
+            enrolledAt: new Date().toISOString(),
+        };
+        
+        const currentBatches = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        currentBatches.push(newBatch);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentBatches));
+        
+        return { success: true, message: "Successfully enrolled" };
     } catch (error) {
         return { success: false, message: "Failed to enroll" };
     }
@@ -146,18 +97,11 @@ export const unenrollFromBatch = async (batchId: string): Promise<boolean> => {
             return false; // Batch not found
         }
 
-        // Remove from Firebase first - this is the primary source
-        try {
-            await firebaseServices.batchEnrollment.unenrollBatch(batchId);
-            
-            return true;
-        } catch (firebaseError) {
-            // Fallback: Remove from localStorage only if Firebase fails
-            const filtered = batches.filter(batch => batch._id !== batchId);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-            
-            return true;
-        }
+        // Remove from localStorage
+        const filtered = batches.filter(batch => batch._id !== batchId);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+        
+        return true;
     } catch (error) {
         return false;
     }
@@ -178,8 +122,17 @@ export const canEnrollMore = async (): Promise<boolean> => {
     return count < MAX_ENROLLMENTS;
 };
 
-export const canAccessBatchContent = async (batchId: string): Promise<boolean> => {
-    return await isEnrolled(batchId);
+export const canAccessBatchContent = (batchId: string): boolean => {
+  // For synchronous access, check localStorage directly
+  const stored = localStorage.getItem('enrolledBatches');
+  if (!stored) return false;
+  
+  try {
+    const batches = JSON.parse(stored);
+    return batches.some((batch: any) => batch._id === batchId);
+  } catch (error) {
+    return false;
+  }
 };
 
 export const getRemainingEnrollments = async (): Promise<number> => {

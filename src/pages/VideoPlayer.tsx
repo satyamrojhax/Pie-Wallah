@@ -7,8 +7,9 @@ import { Loader2, AlertCircle, MoreVertical, Download, Eye, FileText, X, Present
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { fetchScheduleDetails, fetchSlides } from '@/services/contentService';
-import { getCommonHeaders } from '@/lib/auth';
+import { fetchScheduleDetails, fetchSlides } from "@/services/contentService";
+import { getCommonHeaders } from "@/lib/auth";
+import { canAccessBatchContent } from "@/lib/enrollmentUtils";
 
 interface VideoData {
     stream_url: string;
@@ -405,6 +406,29 @@ const VideoPlayer = () => {
                     <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
                     <h2 className="text-xl font-bold mb-2">Error Loading Video</h2>
                     <p className="text-muted-foreground mb-6">{error}</p>
+                </Card>
+            </div>
+        );
+    }
+
+    // Check if user has access to this batch content
+    if (batchId && !canAccessBatchContent(batchId)) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
+                <Card className="max-w-md w-full p-8 shadow-elevation-1 border-border/50 text-center">
+                    <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                    <h2 className="text-xl font-bold mb-2">Access Restricted</h2>
+                    <p className="text-muted-foreground mb-6">
+                        You need to enroll in this batch to access video content.
+                    </p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                        <Button onClick={() => navigate(`/batch/${batchId}`)} className="bg-gradient-primary hover:opacity-90">
+                            Enroll Now
+                        </Button>
+                        <Button onClick={() => navigate('/batches')} variant="outline">
+                            View All Batches
+                        </Button>
+                    </div>
                 </Card>
             </div>
         );
