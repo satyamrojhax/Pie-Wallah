@@ -64,9 +64,16 @@ const PopularBatchCard = ({ batch }: { batch: PopularBatch }) => {
       }
     }
     
-    // Try typeInfo.previewImage object
+    // Try typeInfo.previewImage object - fix URL construction
     if (typeInfo.previewImage?.baseUrl && typeInfo.previewImage?.key) {
-      return `${typeInfo.previewImage.baseUrl}${typeInfo.previewImage.key}`;
+      // Ensure baseUrl ends with / and key doesn't start with /
+      const baseUrl = typeInfo.previewImage.baseUrl.endsWith('/') 
+        ? typeInfo.previewImage.baseUrl 
+        : typeInfo.previewImage.baseUrl + '/';
+      const key = typeInfo.previewImage.key.startsWith('/') 
+        ? typeInfo.previewImage.key.slice(1) 
+        : typeInfo.previewImage.key;
+      return `${baseUrl}${key}`;
     }
     
     // Try typeInfo.previewImageUrl (relative path)
@@ -80,6 +87,15 @@ const PopularBatchCard = ({ batch }: { batch: PopularBatch }) => {
   };
 
   const imageUrl = getImageUrl();
+  
+  // Debug logging for image URL construction
+  console.log('Popular Batch Image Debug:', {
+    batchName: typeInfo.name,
+    previewImage: typeInfo.previewImage,
+    previewImageUrl: typeInfo.previewImageUrl,
+    cardFiles: typeInfo.card?.files,
+    finalImageUrl: imageUrl
+  });
 
   return (
     <Card className="group flex flex-col h-full overflow-hidden border border-border/60 shadow-card hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
@@ -92,6 +108,11 @@ const PopularBatchCard = ({ batch }: { batch: PopularBatch }) => {
             className="h-48 sm:h-52 w-full object-cover"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
+              console.error('Image failed to load:', {
+                url: imageUrl,
+                batchName: typeInfo.name,
+                error: 'Image load failed'
+              });
               // Use the specific fallback image provided
               target.src = 'https://static.pw.live/5eb393ee95fab7468a79d189/9ef3bea0-6eed-46a8-b148-4a35dd6b3b61.png';
               // If fallback also fails, show SVG icon
