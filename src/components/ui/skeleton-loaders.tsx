@@ -66,44 +66,57 @@ export const VideoPlayerSkeleton = () => (
   </div>
 );
 
-// Enhanced Profile Skeleton
+// Enhanced Profile Skeleton with mobile responsiveness
 export const ProfileSkeleton = () => (
-  <div className="min-h-screen bg-background pb-20">
-    <div className="container mx-auto px-4 pt-6">
-      <div className="grid gap-8 lg:grid-cols-3">
+  <div className="min-h-screen bg-background pb-12 sm:pb-16 lg:pb-20">
+    <div className="container mx-auto px-2 sm:px-3 md:px-4 lg:px-4 pt-3 sm:pt-4 lg:pt-6">
+      <div className="grid gap-4 sm:gap-6 lg:gap-8 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <Card className="p-6 text-center">
-            <div className="relative overflow-hidden rounded-full mx-auto mb-4 w-24 h-24">
+          <Card className="p-3 sm:p-4 md:p-6 text-center">
+            <div className="relative overflow-hidden rounded-full mx-auto mb-3 sm:mb-4 lg:mb-6 w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24">
               <Skeleton className="h-full w-full rounded-full" />
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-muted/30 to-muted animate-shimmer rounded-full" />
             </div>
-            <Skeleton className="h-8 w-3/4 mx-auto mb-2" />
-            <Skeleton className="h-4 w-1/2 mx-auto mb-6" />
-            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-6 sm:h-7 lg:h-8 w-3/4 mx-auto mb-1 sm:mb-2" />
+            <Skeleton className="h-3 sm:h-4 w-1/2 mx-auto mb-3 sm:mb-4 lg:mb-6" />
+            <Skeleton className="h-8 sm:h-9 lg:h-10 w-full" />
           </Card>
-          <Card className="mt-8 p-6">
-            <Skeleton className="h-6 w-1/3 mb-6" />
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
+          <Card className="mt-4 sm:mt-6 lg:mt-8 p-3 sm:p-4 md:p-6">
+            <Skeleton className="h-4 sm:h-5 w-1/3 mb-2 sm:mb-3 lg:mb-4" />
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4">
+              <Skeleton className="h-12 sm:h-14 lg:h-16 w-full" />
+              <Skeleton className="h-12 sm:h-14 lg:h-16 w-full" />
             </div>
           </Card>
         </div>
-        <div className="lg:col-span-2 space-y-8">
-          <Card className="p-8">
-            <Skeleton className="h-6 w-1/3 mb-6" />
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-4">
-                <Skeleton className="h-4 w-1/4" />
-                <Skeleton className="h-6 w-3/4" />
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
+          <Card className="p-3 sm:p-4 md:p-6 lg:p-8">
+            <Skeleton className="h-5 sm:h-6 lg:h-7 w-1/3 mb-3 sm:mb-4 lg:mb-6" />
+            <div className="grid gap-3 sm:gap-4 lg:gap-6 md:grid-cols-2">
+              <div className="space-y-2 sm:space-y-3">
+                <Skeleton className="h-3 sm:h-4 w-1/4" />
+                <Skeleton className="h-5 sm:h-6 w-3/4" />
               </div>
-              <div className="space-y-4">
-                <Skeleton className="h-4 w-1/4" />
-                <Skeleton className="h-6 w-2/3" />
+              <div className="space-y-2 sm:space-y-3">
+                <Skeleton className="h-3 sm:h-4 w-1/4" />
+                <Skeleton className="h-5 sm:h-6 w-2/3" />
               </div>
-              <div className="space-y-4">
-                <Skeleton className="h-4 w-1/4" />
-                <Skeleton className="h-6 w-full" />
+              <div className="space-y-2 sm:space-y-3">
+                <Skeleton className="h-3 sm:h-4 w-1/4" />
+                <Skeleton className="h-5 sm:h-6 w-full" />
+              </div>
+            </div>
+          </Card>
+          <Card className="p-3 sm:p-4 md:p-6 lg:p-8">
+            <Skeleton className="h-5 sm:h-6 lg:h-7 w-1/3 mb-3 sm:mb-4 lg:mb-6" />
+            <div className="grid gap-3 sm:gap-4 lg:gap-6 md:grid-cols-2">
+              <div className="space-y-2 sm:space-y-3">
+                <Skeleton className="h-3 sm:h-4 w-1/4" />
+                <Skeleton className="h-5 sm:h-6 w-1/2" />
+              </div>
+              <div className="space-y-2 sm:space-y-3">
+                <Skeleton className="h-3 sm:h-4 w-1/4" />
+                <Skeleton className="h-5 sm:h-6 w-2/3" />
               </div>
             </div>
           </Card>
