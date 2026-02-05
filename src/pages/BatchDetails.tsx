@@ -453,7 +453,7 @@ const BatchDetails = () => {
       <Navbar />
 
       <div className="container mx-auto px-4 py-6 sm:py-8">
-        <div className="mb-4 sm:mb-6 flex items-center justify-between">
+        <div className="mb-4 sm:mb-6 flex items-center justify-between hidden md:flex">
           <BackButton label="Back" />
         </div>
 
@@ -476,7 +476,7 @@ const BatchDetails = () => {
                     </Badge>
                   )}
                 </div>
-                <h1 className="mb-2 sm:mb-3 text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">{batchData.name}</h1>
+                <h1 className="mb-2 sm:mb-3 text-2xl sm:text-3xl md:text-4xl font-bold text-foreground hidden md:block">{batchData.name}</h1>
                 {batchData.byName && (
                   <p className="mb-3 sm:mb-4 text-base sm:text-lg text-muted-foreground">{batchData.byName}</p>
                 )}
@@ -554,7 +554,7 @@ const BatchDetails = () => {
           <div className="mb-3 sm:mb-6">
             <div className="flex items-start justify-between gap-3 sm:gap-4">
               <div className="flex-1">
-                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">{batchData.name}</h1>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground hidden md:block">{batchData.name}</h1>
                 {batchData.byName && (
                   <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1">{batchData.byName}</p>
                 )}
