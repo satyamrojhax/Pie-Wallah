@@ -5,7 +5,7 @@
 Pie Wallah is a modern educational platform built with React, TypeScript, and Tailwind CSS. It provides students with access to video lectures, study materials, notes, and interactive learning features.
 
 **🚀 Live Demo**: [https://piewallah.vercel.app/]
-**📦 Repository**: [https://github.com/satyamrojhax/piewallahapp](https://github.com/satyamrojhax/pie-wallah)
+**📦 Repository**: [https://github.com/satyamrojhax/Pie-Wallah](https://github.com/satyamrojhax/Pie-Wallah)
 
 **Key Features:**
 - 🎥 Advanced video player with Shaka Player integration
@@ -29,10 +29,10 @@ Follow these steps to set up the project locally:
 
 ```sh
 # Step 1: Clone the repository
-git clone https://github.com/satyamrojhax/piewallahapp.git
+git clone https://github.com/satyamrojhax/Pie-Wallah.git
 
 # Step 2: Navigate to the project directory
-cd piewallahapp
+cd Pie-Wallah
 
 # Step 3: Install dependencies
 npm install
@@ -176,7 +176,7 @@ The application uses secure token-based authentication with proper header manage
 ### One-Click Setup
 ```bash
 # Clone and setup in one command
-git clone https://github.com/satyamrojhax/piewallahapp.git && cd piewallahapp && npm install && npm run dev
+git clone https://github.com/satyamrojhax/Pie-Wallah.git && cd Pie-Wallah && npm install && npm run dev
 ```
 
 ### Docker Quick Start
@@ -193,7 +193,7 @@ We welcome contributions! Here's how to get started:
 1. **Fork the Repository**
    ```bash
    # Fork on GitHub and clone your fork
-   git clone https://github.com/your-username/piewallahapp.git
+   git clone https://github.com/your-username/Pie-Wallah.git
    ```
 
 2. **Create a Feature Branch**
