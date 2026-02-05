@@ -168,11 +168,11 @@ const TopicDetails = () => {
         <Navbar />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-28 pt-6 md:pb-12">
-          <div className="mb-6 flex items-center justify-between hidden md:flex">
+          <div className="mb-6 flex items-center justify-between">
             <BackButton label="Back" />
           </div>
 
-          <div className="mb-8 flex flex-col gap-2 hidden md:block">
+          <div className="mb-8 flex flex-col gap-2">
             <h1 className="text-3xl font-bold text-foreground">{subjectName ?? "Subject"}</h1>
             {batchName && <p className="text-sm text-muted-foreground">{batchName}</p>}
           </div>

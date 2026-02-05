@@ -1023,11 +1023,11 @@ const TopicSubjectDetails = () => {
       <Navbar />
 
       <div className="container mx-auto px-4 pb-28 pt-6 md:pb-12">
-        <div className="mb-6 flex items-center justify-between hidden md:flex">
+        <div className="mb-6 flex items-center justify-between">
           <BackButton label="Back" />
         </div>
 
-        <div className="mb-8 flex flex-col gap-2 hidden md:block">
+        <div className="mb-8 flex flex-col gap-2">
           <h1 className="text-3xl font-bold text-foreground">{topicName || "Topic Details"}</h1>
           {subjectName && <p className="text-sm text-muted-foreground">{subjectName}</p>}
         </div>
