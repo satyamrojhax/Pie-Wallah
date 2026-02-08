@@ -477,8 +477,22 @@ const Index = () => {
           </div>
 
           {isScheduleLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="p-4 border-border/60 bg-card/80">
+                  <div className="flex gap-3">
+                    <div className="w-16 h-16 rounded-lg bg-muted/50 animate-pulse" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-3/4 bg-muted/50 rounded animate-pulse" />
+                      <div className="h-3 w-1/2 bg-muted/50 rounded animate-pulse" />
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-16 bg-muted/50 rounded animate-pulse" />
+                        <div className="h-6 w-6 bg-muted/50 rounded-full animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           ) : todayClasses.length === 0 ? (
             <Card className="p-6 text-center">
