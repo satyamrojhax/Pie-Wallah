@@ -1,5 +1,6 @@
 // Utility functions for managing enrolled batches in localStorage
 import "@/config/firebase";
+import { saveEnrolledBatch, trackBatchInteraction } from "@/services/realtimeDatabaseService";
 
 export type EnrolledBatch = {
     _id: string;
@@ -68,7 +69,7 @@ export const isEnrolled = async (batchId: string): Promise<boolean> => {
     return batches.some(batch => batch._id === batchId);
 };
 
-export const enrollInBatch = async (batch: Omit<EnrolledBatch, 'enrolledAt'>): Promise<{ success: boolean; message: string }> => {
+export const enrollInBatch = async (batch: Omit<EnrolledBatch, 'enrolledAt'>, userId?: string): Promise<{ success: boolean; message: string }> => {
     try {
         const batches = await getEnrolledBatches();
 
@@ -95,6 +96,29 @@ export const enrollInBatch = async (batch: Omit<EnrolledBatch, 'enrolledAt'>): P
         const currentBatches = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
         currentBatches.push(newBatch);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(currentBatches));
+        
+        // Also save to real-time database if userId is provided
+        if (userId) {
+            try {
+                await saveEnrolledBatch(userId, {
+                    batchId: batch._id,
+                    batchName: batch.name,
+                    status: 'active',
+                    progress: 0,
+                    totalLectures: 0,
+                    completedLectures: 0,
+                });
+                
+                // Track enrollment action
+                await trackBatchInteraction(userId, batch._id, 'enrolled', {
+                    batchName: batch.name,
+                    timestamp: Date.now(),
+                });
+            } catch (error) {
+                console.error('Error saving batch to real-time database:', error);
+                // Don't fail the enrollment if real-time database fails
+            }
+        }
         
         return { success: true, message: "Successfully enrolled" };
     } catch (error) {

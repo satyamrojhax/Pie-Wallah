@@ -1,5 +1,6 @@
 import { safeFetch } from '../lib/apiConfig';
 import "@/config/firebase";
+import { saveCompletedLecture, trackVideoInteraction } from './realtimeDatabaseService';
 
 const VIDEO_API_BASE = "https://openspaceapi.vercel.app/api";
 const FALLBACK_API_BASE = "https://opendataapi.vercel.app/api";
@@ -378,6 +379,71 @@ export const checkApiHealth = async (): Promise<{
     return data;
   } catch (error) {
     throw new Error(`API health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+// Lecture completion tracking
+export const markLectureCompleted = async (
+  userId: string,
+  lectureId: string,
+  batchId: string,
+  subject: string,
+  topic: string,
+  duration: number,
+  watchTime: number
+): Promise<void> => {
+  try {
+    await saveCompletedLecture(userId, {
+      lectureId,
+      batchId,
+      subject,
+      topic,
+      duration,
+      watchTime,
+      completed: true,
+    });
+    
+    await trackVideoInteraction(userId, lectureId, 'completed', {
+      batchId,
+      subject,
+      topic,
+      duration,
+      watchTime,
+    });
+  } catch (error) {
+    console.error('Error marking lecture as completed:', error);
+  }
+};
+
+export const trackVideoProgress = async (
+  userId: string,
+  lectureId: string,
+  currentTime: number,
+  duration: number,
+  batchId?: string
+): Promise<void> => {
+  try {
+    await trackVideoInteraction(userId, lectureId, 'progress', {
+      currentTime,
+      duration,
+      progressPercentage: (currentTime / duration) * 100,
+      batchId,
+    });
+  } catch (error) {
+    console.error('Error tracking video progress:', error);
+  }
+};
+
+export const trackVideoEvent = async (
+  userId: string,
+  lectureId: string,
+  event: 'play' | 'pause' | 'seek' | 'quality_change' | 'fullscreen',
+  data?: any
+): Promise<void> => {
+  try {
+    await trackVideoInteraction(userId, lectureId, event, data);
+  } catch (error) {
+    console.error('Error tracking video event:', error);
   }
 };
 

@@ -1,5 +1,6 @@
 import { getAuthToken, getCommonHeaders } from '@/lib/auth';
 import "@/config/firebase";
+import { saveUserProfile, trackUserBehavior, startUserSession, endUserSession } from './realtimeDatabaseService';
 
 const API_BASE = "https://api.penpencil.co/v1";
 const AUTH_BASE = "https://api.penpencil.co/v3";
@@ -157,7 +158,18 @@ export const fetchUserProfile = async (): Promise<{ success: boolean; data: User
       throw new Error("Failed to fetch user profile");
     }
     
-    return response.json();
+    const result = await response.json();
+    
+    // Save profile to real-time database
+    if (result.success && result.data) {
+      try {
+        await saveUserProfile(result.data.id, result.data);
+      } catch (error) {
+        console.error('Error saving profile to real-time database:', error);
+      }
+    }
+    
+    return result;
   } catch (error) {
     throw error;
   }
@@ -554,7 +566,8 @@ export const refreshUserData = async (): Promise<{
 
     // Try to get full profile
     try {
-      results.profile = (await fetchUserProfile()).data;
+      const profileResult = await fetchUserProfile();
+      results.profile = profileResult.data;
     } catch (error) {
     }
 
@@ -573,6 +586,76 @@ export const refreshUserData = async (): Promise<{
     return results;
   } catch (error) {
     return results;
+  }
+};
+
+// User session and behavior tracking functions
+export const initializeUserSession = async (userId: string): Promise<void> => {
+  try {
+    await startUserSession(userId);
+    await trackUserBehavior(userId, 'session_start', 'app', {
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('Error initializing user session:', error);
+  }
+};
+
+export const terminateUserSession = async (userId: string): Promise<void> => {
+  try {
+    await trackUserBehavior(userId, 'session_end', 'app', {
+      timestamp: Date.now(),
+    });
+    await endUserSession(userId);
+  } catch (error) {
+    console.error('Error terminating user session:', error);
+  }
+};
+
+export const trackUserAction = async (
+  userId: string,
+  action: string,
+  page: string,
+  data?: any
+): Promise<void> => {
+  try {
+    await trackUserBehavior(userId, action, page, data);
+  } catch (error) {
+    console.error('Error tracking user action:', error);
+  }
+};
+
+export const trackProfileUpdate = async (userId: string, updatedFields: any): Promise<void> => {
+  try {
+    await trackUserBehavior(userId, 'profile_updated', 'profile', {
+      updatedFields: Object.keys(updatedFields),
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('Error tracking profile update:', error);
+  }
+};
+
+export const trackLoginEvent = async (userId: string, loginMethod: string = 'email'): Promise<void> => {
+  try {
+    await trackUserBehavior(userId, 'login', 'auth', {
+      loginMethod,
+      timestamp: Date.now(),
+    });
+    await initializeUserSession(userId);
+  } catch (error) {
+    console.error('Error tracking login event:', error);
+  }
+};
+
+export const trackLogoutEvent = async (userId: string): Promise<void> => {
+  try {
+    await trackUserBehavior(userId, 'logout', 'auth', {
+      timestamp: Date.now(),
+    });
+    await terminateUserSession(userId);
+  } catch (error) {
+    console.error('Error tracking logout event:', error);
   }
 };
 

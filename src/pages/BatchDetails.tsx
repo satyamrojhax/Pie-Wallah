@@ -39,6 +39,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { enrollInBatch, isEnrolled, getEnrollmentCount, getRemainingEnrollments, canEnrollMore } from "@/lib/enrollmentUtils";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { fetchBatchDetails, fetchAnnouncements } from "@/services/batchService";
 import { fetchFAQs, type FAQ } from "@/services/faqService";
 import type { Teacher } from "@/services/batchService";
@@ -197,6 +198,7 @@ const parseDescription = (description?: string) => {
 const BatchDetails = () => {
   const { batchId } = useParams<{ batchId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [enrolled, setEnrolled] = useState(false);
   const [canEnroll, setCanEnroll] = useState(true);
   const [remainingEnrollments, setRemainingEnrollments] = useState(2);
@@ -306,7 +308,7 @@ const BatchDetails = () => {
       class: batchData.class,
       startDate: batchData.startDate,
       endDate: batchData.endDate,
-    });
+    }, user?.id); // Pass userId to save to real-time database
 
     if (result.success) {
       setEnrolled(true);

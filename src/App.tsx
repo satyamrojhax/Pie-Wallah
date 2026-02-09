@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-ro
 import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import OfflineBlocker from "@/components/OfflineBlocker";
+import BehaviorTracker from "@/components/BehaviorTracker";
 import Index from "./pages/Index";
 // Import Batches page component
 import Batches from "./pages/Batches";
@@ -193,163 +194,181 @@ const AppContent = () => {
         onAccessGames={handleAccessGames}
       />
       
-      <Routes>
-        <Route path="/" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <Index />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/batches" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <Batches />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/study" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <Study />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/weekly-schedule" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <WeeklySchedule />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/pdf-bank" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <PdfBank />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/community" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <Community />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/ai-guru" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <AiGuru />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/notifications" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <Notifications />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/my-batches" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<ProfileSkeleton />}>
-                <MyBatches />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/batch/:batchId" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<BatchCardSkeleton />}>
-                <BatchDetails />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/batch/:batchId/subject/:subjectSlug/topics" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<TopicCardSkeleton />}>
-                <TopicDetails />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/batch/:batchId/subject/:subjectSlug/topic/:topicId" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<VideoPlayerSkeleton />}>
-                <TopicSubjectDetails />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/topic/:topicId" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<TopicCardSkeleton />}>
-                <TopicDetails />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/video-data-not-found" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <VideoDataNotFound />
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/login" element={<Login />} />
-        <Route path="/otp-verification" element={<OtpVerification />} />
-        <Route path="/watch" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<VideoPlayerSkeleton />}>
-                <VideoPlayer />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/tictactoe" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <TicTacToe />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        <Route path="/profile" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <Suspense fallback={<ProfileSkeleton />}>
-                <Profile />
-              </Suspense>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      {isAuthenticated && (
+        <BehaviorTracker 
+          userId={isAuthenticated ? JSON.parse(localStorage.getItem('user_data') || '{}').id : ''}
+          trackPageViews={true}
+          trackInteractions={true}
+          customData={{
+            userAgent: navigator.userAgent,
+            timestamp: Date.now(),
+          }}
+        >
+          <Routes>
+            <Route path="/" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <Index />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/batches" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <Batches />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/study" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <Study />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/weekly-schedule" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <WeeklySchedule />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/pdf-bank" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <PdfBank />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/community" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <Community />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/ai-guru" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <AiGuru />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/notifications" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <Notifications />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/my-batches" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<ProfileSkeleton />}>
+                    <MyBatches />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/batch/:batchId" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<BatchCardSkeleton />}>
+                    <BatchDetails />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/batch/:batchId/subject/:subjectSlug/topics" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<TopicCardSkeleton />}>
+                    <TopicDetails />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/batch/:batchId/subject/:subjectSlug/topic/:topicId" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<VideoPlayerSkeleton />}>
+                    <TopicSubjectDetails />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/topic/:topicId" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<TopicCardSkeleton />}>
+                    <TopicDetails />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/video-data-not-found" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <VideoDataNotFound />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/watch" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<VideoPlayerSkeleton />}>
+                    <VideoPlayer />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/tictactoe" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <TicTacToe />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<ProfileSkeleton />}>
+                    <Profile />
+                  </Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BehaviorTracker>
+      )}
+      
+      {!isAuthenticated && (
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/otp-verification" element={<OtpVerification />} />
+          <Route path="*" element={<Login />} />
+        </Routes>
+      )}
       
       <OfflineModal
         isOpen={showOfflineModal}

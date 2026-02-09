@@ -2,6 +2,7 @@ import { getAnnouncementApiUrl, API_CONFIG, safeFetch } from '../lib/apiConfig';
 import { getCommonHeaders, getAuthToken } from '@/lib/auth';
 import { getCohortIdFromToken } from './cohortService';
 import "@/config/firebase";
+import { saveEnrolledBatch, updateBatchProgress, trackBatchInteraction } from './realtimeDatabaseService';
 
 const API_BASE = "https://api.penpencil.co/v3/batches";
 const ANNOUNCEMENT_API = "/v1";
@@ -367,5 +368,74 @@ export const fetchAllBatches = async (page: number = 1): Promise<{
       total: 0,
       hasMore: false,
     };
+  }
+};
+
+// Batch enrollment and tracking functions
+export const enrollInBatch = async (
+  userId: string,
+  batchId: string,
+  batchName: string,
+  totalLectures: number = 0
+): Promise<void> => {
+  try {
+    await saveEnrolledBatch(userId, {
+      batchId,
+      batchName,
+      status: 'active',
+      progress: 0,
+      totalLectures,
+      completedLectures: 0,
+    });
+
+    await trackBatchInteraction(userId, batchId, 'enrolled', {
+      batchName,
+      totalLectures,
+    });
+  } catch (error) {
+    console.error('Error enrolling in batch:', error);
+    throw error;
+  }
+};
+
+export const updateBatchEnrollmentProgress = async (
+  userId: string,
+  batchId: string,
+  completedLectures: number,
+  totalLectures: number
+): Promise<void> => {
+  try {
+    const progress = totalLectures > 0 ? (completedLectures / totalLectures) * 100 : 0;
+    
+    await updateBatchProgress(userId, batchId, progress);
+    
+    await trackBatchInteraction(userId, batchId, 'progress_updated', {
+      completedLectures,
+      totalLectures,
+      progress,
+    });
+  } catch (error) {
+    console.error('Error updating batch progress:', error);
+  }
+};
+
+export const trackBatchView = async (userId: string, batchId: string, batchName?: string): Promise<void> => {
+  try {
+    await trackBatchInteraction(userId, batchId, 'viewed', { batchName });
+  } catch (error) {
+    console.error('Error tracking batch view:', error);
+  }
+};
+
+export const trackBatchAction = async (
+  userId: string,
+  batchId: string,
+  action: 'bookmark' | 'share' | 'download' | 'rate',
+  data?: any
+): Promise<void> => {
+  try {
+    await trackBatchInteraction(userId, batchId, action, data);
+  } catch (error) {
+    console.error('Error tracking batch action:', error);
   }
 };
