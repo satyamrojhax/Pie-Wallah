@@ -111,13 +111,14 @@ const PopularBatchCard = ({ batch }: { batch: PopularBatch }) => {
   const imageUrl = getImageUrl();
   
   return (
-    <Card className="group flex flex-col h-full overflow-hidden border border-border/60 shadow-card hover:shadow-lg hover:-translate-y-1 transition-all duration-200 bg-card will-change-transform">
+    <Card className="group flex flex-col h-full overflow-hidden border border-border/60 shadow-card hover:shadow-lg hover:-translate-y-1 transition-all duration-200 bg-card will-change-transform" style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
       {/* Header with Preview Image */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden" style={{ transform: 'translateZ(0)' }}>
         <img
           src={getImageUrl()}
           alt={typeInfo.name}
           className="h-32 sm:h-40 md:h-48 lg:h-52 w-full object-cover transition-transform duration-200 group-hover:scale-105"
+          style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = IMAGE_FALLBACK;
@@ -295,13 +296,14 @@ const BatchCard = ({ batch }: { batch: Batch }) => {
   };
 
   return (
-    <Card className="group flex flex-col h-full overflow-hidden border border-border/60 shadow-card hover:shadow-lg hover:-translate-y-1 transition-all duration-200 bg-card will-change-transform">
+    <Card className="group flex flex-col h-full overflow-hidden border border-border/60 shadow-card hover:shadow-lg hover:-translate-y-1 transition-all duration-200 bg-card will-change-transform" style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
       {/* Header with Preview Image */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden" style={{ transform: 'translateZ(0)' }}>
         <img
           src={getImageUrl()}
           alt={batch.name}
           className="h-32 sm:h-40 md:h-48 lg:h-52 w-full object-cover transition-transform duration-200 group-hover:scale-105"
+          style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = IMAGE_FALLBACK;
@@ -557,9 +559,9 @@ const Batches = () => {
     <>
       <Navbar />
       
-      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 md:py-8">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 md:py-8" style={{ isolation: 'isolate' }}>
         {/* Header with Back Button */}
-        <div className="mb-4 sm:mb-6 md:mb-8">
+        <div className="mb-4 sm:mb-6 md:mb-8" style={{ transform: 'translateZ(0)' }}>
           {/* Back Button - Separate from title */}
           <div className="mb-3 sm:mb-4">
             <Button variant="ghost" size="sm" onClick={handleBack} className="rounded-full h-8 w-8 sm:h-10 sm:w-10 p-0">
