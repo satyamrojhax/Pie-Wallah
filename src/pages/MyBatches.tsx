@@ -1,11 +1,11 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Book, Calendar, Languages, Trash2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Book, Calendar, Languages, Trash2, ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { useState, useEffect } from "react";
-import { getEnrolledBatches, unenrollFromBatch, type EnrolledBatch, getEnrollmentCount, MAX_ENROLLMENTS } from "@/lib/enrollmentUtils";
+import { getEnrolledBatches, unenrollFromBatch, type EnrolledBatch, getEnrollmentCount, getMaxEnrollments } from "@/lib/enrollmentUtils";
 import { useToast } from "@/hooks/use-toast";
 import DotsLoader from "@/components/ui/DotsLoader";
 import "@/config/firebase";
@@ -22,10 +22,15 @@ const formatDate = (dateString?: string) => {
 };
 
 const MyBatches = () => {
+  const navigate = useNavigate();
   const [enrolledBatches, setEnrolledBatches] = useState<EnrolledBatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const { toast } = useToast();
+
+  const handleBack = () => {
+    navigate(-1);
+  };
 
   useEffect(() => {
     // Load enrolled batches from localStorage
@@ -44,6 +49,20 @@ const MyBatches = () => {
     };
     
     loadBatches();
+  }, []);
+
+  const [maxEnrollments, setMaxEnrollments] = useState<number>(3);
+
+  // Update max enrollments based on device type
+  useEffect(() => {
+    setMaxEnrollments(getMaxEnrollments());
+    
+    const handleResize = () => {
+      setMaxEnrollments(getMaxEnrollments());
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Handle initial load state timing (same as Community)
@@ -88,8 +107,14 @@ const MyBatches = () => {
       <Navbar />
 
       <div className="container mx-auto px-4 py-6 sm:py-8">
+        {/* Header with Back Button */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="mb-2 text-2xl sm:text-3xl font-bold text-foreground">My Batches</h1>
+          <div className="flex items-center gap-2 sm:gap-4 mb-4">
+            <Button variant="ghost" size="sm" onClick={handleBack} className="rounded-full">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground tracking-tight">My Batches</h1>
+          </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-muted-foreground">
             <p className="text-sm sm:text-base">
               {enrolledBatches.length > 0
@@ -98,7 +123,7 @@ const MyBatches = () => {
             </p>
             {enrolledBatches.length > 0 && (
               <Badge variant="secondary" className="bg-primary/10 text-primary">
-                {enrolledBatches.length}/{MAX_ENROLLMENTS} slots used
+                {enrolledBatches.length}/{maxEnrollments} slots used
               </Badge>
             )}
           </div>

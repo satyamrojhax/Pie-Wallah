@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
   Filter,
   Star,
   TrendingUp,
+  ArrowLeft,
   ArrowRight
 } from "lucide-react";
 import { fetchPopularBatches, PopularBatch } from "@/services/widgetService";
@@ -402,6 +403,7 @@ const BatchCard = ({ batch }: { batch: Batch }) => {
 };
 
 const Batches = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -504,6 +506,10 @@ const Batches = () => {
   const isLoading = isPopularLoading || isAllLoading;
   const error = popularError || allError;
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
   if (error) {
     return (
       <>
@@ -527,14 +533,24 @@ const Batches = () => {
       <Navbar />
       
       <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8 text-center">
-          <h1 className="mb-3 sm:mb-4 text-2xl sm:text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-            Explore Our Batches
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
-            Discover the perfect learning batch tailored to your educational journey
-          </p>
+        {/* Header with Back Button */}
+        <div className="mb-6 sm:mb-8">
+          {/* Back Button - Separate from title */}
+          <div className="mb-4">
+            <Button variant="ghost" size="sm" onClick={handleBack} className="rounded-full">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Centered Title and Description */}
+          <div className="text-center">
+            <h1 className="mb-3 sm:mb-4 text-2xl sm:text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+              Explore Our Batches
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
+              Discover the perfect learning batch tailored to your educational journey
+            </p>
+          </div>
         </div>
 
         {/* Search and Filters */}

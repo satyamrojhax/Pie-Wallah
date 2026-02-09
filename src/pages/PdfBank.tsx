@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
 import Navbar from "@/components/Navbar";
+import { useNavigate } from 'react-router-dom';
 import { 
   fetchExamsWithCategories, 
   fetchChildNodes, 
@@ -39,11 +40,16 @@ interface BreadcrumbItem {
 }
 
 const PdfBank: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedExam, setSelectedExam] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [currentPath, setCurrentPath] = useState<BreadcrumbItem[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [currentDeeplink, setCurrentDeeplink] = useState<string>('');
+
+  const handleBack = () => {
+    navigate(-1);
+  };
 
   // Fetch exams and categories
   const { data: examsData, isLoading: examsLoading, error: examsError } = useQuery({
@@ -188,6 +194,20 @@ const PdfBank: React.FC = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-6 py-6">
+        {/* Header with Back Button */}
+        <div className="mb-6">
+          {/* Back Button - Separate from title */}
+          <div className="mb-4">
+            <Button variant="ghost" size="sm" onClick={handleBack} className="rounded-full">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Centered Title */}
+          <div className="text-center">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground tracking-tight">PDF Bank</h1>
+          </div>
+        </div>
         {/* Breadcrumb Navigation */}
         {currentPath.length > 0 && (
           <div className="mb-6">

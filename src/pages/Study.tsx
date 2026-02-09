@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { getApiUrl, safeFetch } from '../lib/apiConfig';
 import { getVideoStreamUrl } from '../services/videoService';
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +14,13 @@ import { getCommonHeaders } from "@/lib/auth";
 import { fetchScheduleDetails } from "@/services/contentService";
 import CountdownTimer from "@/components/CountdownTimer";
 import { saveNavigationState, getNavigationState } from '@/lib/navigationState';
-import "@/config/firebase";
+
+// Initialize Firebase conditionally to prevent conflicts
+if (typeof window !== 'undefined') {
+  import('@/lib/firebaseInit').catch(() => {
+    // Silently handle Firebase import errors
+  });
+}
 
 const TODAYS_SCHEDULE_API = "/v1/batches/{batchId}/todays-schedule";
 const IMAGE_FALLBACK = "https://static.pw.live/5eb393ee95fab7468a79d189/9ef3bea0-6eed-46a8-b148-4a35dd6b3b61.png";
@@ -131,7 +137,6 @@ type EnrolledBatchesResponse = {
 const fetchWeeklySchedules = async (batchId: string, startDate: string, endDate: string, batchSubjectId?: string): Promise<ScheduleItem[]> => {
   const authToken = localStorage.getItem("param_auth_token");
   if (!authToken) {
-    // No auth token found
     return [];
   }
 
@@ -164,23 +169,32 @@ const fetchWeeklySchedules = async (batchId: string, startDate: string, endDate:
     const data: BatchScheduleResponse = await response.json();
     const items = data.data || data.schedule || [];
     
-    return items.map((item) => ({
-      ...item,
-      batchId,
-      image: (item as any).videoDetails?.image ||
-        (item as any).previewImageUrl ||
-        (item as any).previewImageUrlMWeb ||
-        (item as any).image ||
-        (item as any).thumbnail ||
-        (item as any).imageUrl ||
-        IMAGE_FALLBACK,
-      subject: (item as any).subjectId?.name || (item as any).subject,
-      subjectId: (item as any).subjectId?._id || (item as any).subjectId || batchSubjectId,
-      subjectName: (item as any).subjectId?.name || (item as any).subject,
-      startTime: (item as any).startTime || (item as any).start_time,
-      endTime: (item as any).endTime || (item as any).end_time,
-    }));
+    return items.map((item) => {
+      // Validate item structure
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+      
+      return {
+        ...item,
+        batchId,
+        image: (item as any).videoDetails?.image ||
+          (item as any).previewImageUrl ||
+          (item as any).previewImageUrlMWeb ||
+          (item as any).image ||
+          (item as any).thumbnail ||
+          (item as any).imageUrl ||
+          IMAGE_FALLBACK,
+        subject: (item as any).subjectId?.name || (item as any).subject || 'Unknown Subject',
+        subjectId: (item as any).subjectId?._id || (item as any).subjectId || batchSubjectId,
+        subjectName: (item as any).subjectId?.name || (item as any).subject || 'Unknown Subject',
+        startTime: (item as any).startTime || (item as any).start_time,
+        endTime: (item as any).endTime || (item as any).end_time,
+        topic: (item as any).topic || 'Untitled Session',
+      };
+    }).filter(Boolean); // Filter out null items
   } catch (error) {
+    console.warn(`Error fetching weekly schedules for batch ${batchId}:`, error);
     return [];
   }
 };
@@ -264,6 +278,11 @@ const fetchTodaysSchedule = async (batchIds: string[]): Promise<ScheduleItem[]> 
           const items = data.data || data.schedule || [];
           
           return items.map((item) => {
+            // Validate item structure
+            if (!item || typeof item !== 'object') {
+              return null;
+            }
+            
             // Extract the correct nested object based on type
             let details: any = {};
             if (item.type === 'LECTURE' && item.videoDetails) {
@@ -291,25 +310,35 @@ const fetchTodaysSchedule = async (batchIds: string[]): Promise<ScheduleItem[]> 
                 details.thumbnail ||
                 details.imageUrl ||
                 IMAGE_FALLBACK,
-              subject: details.subjectId?.name || item.subject,
-              subjectId: details.subjectId?._id || item.subjectId,
-              subjectName: details.subjectId?.name || item.subject,
+              subject: details.subjectId?.name || item.subject || 'Unknown Subject',
+              subjectId: details.subjectId?._id || item.subjectId || batchId,
+              subjectName: details.subjectId?.name || item.subject || 'Unknown Subject',
               startTime: details.startTime || item.startTime,
               endTime: details.endTime || item.endTime,
-              topic: details.topic || item.topic,
+              topic: details.topic || item.topic || 'Untitled Session',
               status: details.status || item.status,
               lectureType: details.lectureType || item.lectureType,
               tag: details.tag || item.tag,
               homeworkIds: details.homeworkIds || item.homeworkIds,
             };
-          });
+          }).filter(Boolean); // Filter out null items
         } catch (error) {
+          console.warn(`Error fetching schedule for batch ${batchId}:`, error);
           return [];
         }
       })
     );
-    return schedules.flat();
+    
+    // Flatten and remove duplicates based on _id
+    const allSchedules = schedules.flat();
+    const uniqueSchedules = allSchedules.filter((item, index, arr) => {
+      if (!item || !item._id) return false;
+      return arr.findIndex(i => i && i._id === item._id) === index;
+    });
+    
+    return uniqueSchedules;
   } catch (error) {
+    console.warn('Error fetching today\'s schedule:', error);
     return [];
   }
 };
@@ -359,6 +388,12 @@ const Study = () => {
   const [loadingVideoId, setLoadingVideoId] = useState<string | null>(null);
   const [showUpcomingPopup, setShowUpcomingPopup] = useState(false);
   const [viewMode, setViewMode] = useState<'today' | 'week'>('today'); // 'today' or 'week'
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
     const today = new Date();
     const dayOfWeek = today.getDay();
@@ -394,7 +429,7 @@ const Study = () => {
 
   const formatDate = (date: Date) => date.toISOString().split('T')[0]; // YYYY-MM-DD format
 
-  // Weekly schedules query with optimized settings
+  // Weekly schedules query with optimized settings and duplicate handling
   const {
     data: weeklyScheduleItems = [],
     isLoading: isWeeklyLoading,
@@ -412,7 +447,15 @@ const Study = () => {
           return await fetchWeeklySchedules(batchId, formatDate(currentWeekStart), formatDate(currentWeekEnd));
         })
       );
-      return schedules.flat();
+      
+      // Flatten and remove duplicates
+      const allSchedules = schedules.flat();
+      const uniqueSchedules = allSchedules.filter((item, index, arr) => {
+        if (!item || !item._id) return false;
+        return arr.findIndex(i => i && i._id === item._id) === index;
+      });
+      
+      return uniqueSchedules;
     },
     enabled: viewMode === 'week' && hasEnrollments,
     staleTime: STALE_TIME,
@@ -464,21 +507,66 @@ const Study = () => {
   // Get current display items based on view mode
   const currentItems = viewMode === 'today' ? scheduleItems : weeklyScheduleItems;
 
-  // Ensure each item has a status and normalize it
-  const itemsWithStatus = useMemo(() =>
-    currentItems.map((item) => ({
-      ...item,
-      status: normalizeStatus(item.status) || getStatus(item.startTime, item.endTime),
-    })),
-    [currentItems]
-  );
-
-  // Filter by selected batch
-  const displayedClasses = useMemo(() => {
-    if (selectedBatchId === "all") {
-      return itemsWithStatus;
+  // Ensure each item has a status and normalize it with enhanced error handling
+  const itemsWithStatus = useMemo(() => {
+    if (!currentItems || currentItems.length === 0) return [];
+    
+    try {
+      return currentItems.map((item) => {
+        // Skip invalid items
+        if (!item || typeof item !== 'object') {
+          return null;
+        }
+        
+        // Ensure required fields exist
+        if (!item._id) {
+          console.warn('Item missing _id:', item);
+          return null;
+        }
+        
+        try {
+          return {
+            ...item,
+            status: normalizeStatus(item.status) || getStatus(item.startTime, item.endTime),
+          };
+        } catch (error) {
+          console.warn('Error processing schedule item:', item, error);
+          return {
+            ...item,
+            status: 'upcoming',
+          };
+        }
+      }).filter(Boolean);
+    } catch (error) {
+      console.warn('Error in itemsWithStatus:', error);
+      return [];
     }
-    return itemsWithStatus.filter((item) => item.batchId === selectedBatchId);
+  }, [currentItems]);
+
+  // Filter by selected batch with enhanced error handling
+  const displayedClasses = useMemo(() => {
+    try {
+      if (!itemsWithStatus || itemsWithStatus.length === 0) return [];
+      
+      let filtered = itemsWithStatus;
+      
+      if (selectedBatchId !== "all") {
+        filtered = itemsWithStatus.filter((item) => {
+          if (!item || !item.batchId) return false;
+          return item.batchId === selectedBatchId;
+        });
+      }
+      
+      // Sort by start time to ensure consistent ordering
+      return filtered.sort((a, b) => {
+        if (!a.startTime) return 1;
+        if (!b.startTime) return -1;
+        return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+      });
+    } catch (error) {
+      console.warn('Error filtering classes:', error);
+      return [];
+    }
   }, [itemsWithStatus, selectedBatchId]);
 
   const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
@@ -496,6 +584,23 @@ const Study = () => {
       target.parentNode?.replaceChild(icon, target);
     };
   };
+
+  // Prevent layout shifts and rendering issues
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 pb-28 pt-8 md:pb-12">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-pulse">
+              <div className="h-8 w-48 bg-muted rounded mb-4"></div>
+              <div className="h-4 w-32 bg-muted rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleRefresh = () => {
     refetchEnrolled();
@@ -766,7 +871,7 @@ const Study = () => {
                 onClick={() => setSelectedBatchId("all")}
                 className="rounded-full"
               >
-                All Batches ({currentItems.length})
+                All Batches ({displayedClasses.length})
               </Button>
               {enrolledBatches.map((batch) => (
                 <Button
@@ -839,21 +944,34 @@ const Study = () => {
           </Card>
         ) : (
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {displayedClasses.map((item) => (
-              <Card
-                key={item._id}
-                className="flex flex-col rounded-2xl sm:rounded-3xl border border-border/60 bg-card/80 p-4 sm:p-6 shadow-card transition-all hover:shadow-soft"
-              >
-                {item.image && (
-                  <div className="relative w-full overflow-hidden rounded-lg mb-3 sm:mb-4">
-                    <img
-                      src={item.image}
-                      alt={item.topic}
-                      className="w-full h-32 sm:h-48 object-cover"
-                      onError={handleImageError}
-                    />
+            {displayedClasses.map((item, index) => {
+              // Additional validation for each item
+              if (!item || !item._id) {
+                console.warn('Invalid item in displayedClasses:', item);
+                return null;
+              }
+              
+              const uniqueKey = item._id || `${item.batchId}-${item.startTime}-${item.topic}-${index}`;
+              return (
+                <Card
+                  key={uniqueKey}
+                  className="flex flex-col rounded-2xl sm:rounded-3xl border border-border/60 bg-card/80 p-4 sm:p-6 shadow-card transition-all hover:shadow-soft"
+                >
+                  <div className="relative w-full overflow-hidden rounded-lg mb-3 sm:mb-4 bg-muted/20">
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.topic || 'Class thumbnail'}
+                        className="w-full h-32 sm:h-48 object-cover transition-opacity duration-300"
+                        onError={handleImageError}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-32 sm:h-48 flex items-center justify-center bg-muted/30">
+                        <Video className="h-12 w-12 text-primary/40" />
+                      </div>
+                    )}
                   </div>
-                )}
                 <div className="mb-3 sm:mb-4 flex flex-wrap items-start justify-between gap-2 sm:gap-3">
                   <div className="flex-1 min-w-0">
                     {item.tag && (
@@ -865,8 +983,14 @@ const Study = () => {
                     {item.subject && (
                       <Badge variant="outline" className="bg-background/60 ml-1 sm:ml-2 text-xs">{item.subject}</Badge>
                     )}
-                    <h3 className="text-lg sm:text-xl font-semibold text-foreground mt-1 sm:mt-2 line-clamp-2">{item.topic}</h3>
-                    {item.batchName && <p className="mt-1 text-xs sm:text-sm text-muted-foreground truncate">{item.batchName}</p>}
+                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mt-1 sm:mt-2 line-clamp-2">
+                    {item.topic || 'Untitled Session'}
+                  </h3>
+                  {item.batchName && (
+                    <p className="mt-1 text-xs sm:text-sm text-muted-foreground truncate">
+                      {item.batchName}
+                    </p>
+                  )}
                   </div>
                   {item.platform && (
                     <Badge variant="outline" className="bg-background/60 text-muted-foreground text-xs flex-shrink-0">{item.platform}</Badge>
@@ -975,13 +1099,14 @@ const Study = () => {
                     )}
                 </div>
               </Card>
-            ))}
+              );
+            }).filter(Boolean)}
           </div>
         )}
       </div>
 
       {/* Upcoming Popup - Mobile Optimized */}
-      {showUpcomingPopup && (
+      {showUpcomingPopup && mounted && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowUpcomingPopup(false)}>
           <div className="bg-white rounded-xl p-6 sm:p-8 max-w-sm w-full mx-auto text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="text-4xl sm:text-5xl text-amber-500 mb-3 sm:mb-4">

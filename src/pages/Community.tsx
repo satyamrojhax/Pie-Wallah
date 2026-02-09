@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageSquare, Users, Book } from "lucide-react";
+import { MessageSquare, Users, Book, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { fetchBatchDetails } from "@/services/batchService";
 import { getEnrolledBatches } from "@/lib/enrollmentUtils";
@@ -10,12 +10,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import CommunitySection from "@/components/community/CommunitySection";
 import DotsLoader from "@/components/ui/DotsLoader";
 import "@/config/firebase";
+import { useNavigate } from "react-router-dom";
 
 const Community = () => {
+  const navigate = useNavigate();
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
   const [enrolledBatches, setEnrolledBatches] = useState<any[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const { user } = useAuth();
+
+  const handleBack = () => {
+    navigate(-1);
+  };
 
   // Get enrolled batches on mount
   useEffect(() => {
@@ -104,11 +110,16 @@ const Community = () => {
       <div className="sticky top-0 z-40 bg-background dark:bg-gray-900 border-b border-border dark:border-gray-800 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground dark:text-white">Community</h1>
-              <p className="text-sm text-muted-foreground dark:text-gray-400">
-                Connect with students and teachers in your enrolled batches
-              </p>
+            <div className="flex items-center gap-2 sm:gap-4">
+              <Button variant="ghost" size="sm" onClick={handleBack} className="rounded-full">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white">Community</h1>
+                <p className="text-sm text-muted-foreground dark:text-gray-400">
+                  Connect with students and teachers in your enrolled batches
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -16,9 +16,21 @@ export type EnrolledBatch = {
 };
 
 const STORAGE_KEY = 'enrolledBatches';
-const MAX_ENROLLMENTS = 3;
+const MAX_ENROLLMENTS_DESKTOP = 7;
+const MAX_ENROLLMENTS_MOBILE = 1;
 
-export { MAX_ENROLLMENTS };
+// Helper function to detect mobile device
+const isMobileDevice = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768; // md breakpoint in Tailwind
+};
+
+// Get max enrollments based on device type
+const getMaxEnrollments = (): number => {
+  return isMobileDevice() ? MAX_ENROLLMENTS_MOBILE : MAX_ENROLLMENTS_DESKTOP;
+};
+
+export { MAX_ENROLLMENTS_DESKTOP, MAX_ENROLLMENTS_MOBILE, getMaxEnrollments };
 
 export const getEnrolledBatches = async (): Promise<EnrolledBatch[]> => {
     try {
@@ -66,10 +78,11 @@ export const enrollInBatch = async (batch: Omit<EnrolledBatch, 'enrolledAt'>): P
         }
 
         // Check enrollment limit
-        if (batches.length >= MAX_ENROLLMENTS) {
+        const maxEnrollments = getMaxEnrollments();
+        if (batches.length >= maxEnrollments) {
             return { 
                 success: false, 
-                message: `Cannot enroll in more than ${MAX_ENROLLMENTS} batches. Please unenroll from a batch first.` 
+                message: `Cannot enroll in more than ${maxEnrollments} batches on ${isMobileDevice() ? 'mobile' : 'desktop'}. Please unenroll from a batch first.` 
             };
         }
 
@@ -120,7 +133,8 @@ export const getEnrollmentCount = async (): Promise<number> => {
 
 export const canEnrollMore = async (): Promise<boolean> => {
     const count = await getEnrollmentCount();
-    return count < MAX_ENROLLMENTS;
+    const maxEnrollments = getMaxEnrollments();
+    return count < maxEnrollments;
 };
 
 export const canAccessBatchContent = (batchId: string): boolean => {
@@ -138,5 +152,6 @@ export const canAccessBatchContent = (batchId: string): boolean => {
 
 export const getRemainingEnrollments = async (): Promise<number> => {
     const count = await getEnrollmentCount();
-    return Math.max(0, MAX_ENROLLMENTS - count);
+    const maxEnrollments = getMaxEnrollments();
+    return Math.max(0, maxEnrollments - count);
 };

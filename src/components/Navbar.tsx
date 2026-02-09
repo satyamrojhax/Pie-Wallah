@@ -107,26 +107,8 @@ const Navbar = () => {
               </Link>
             </div>
 
-            {/* Desktop Navigation */}
-            <div className="hidden rounded-full border border-border/40 bg-background/60 px-1.5 py-1 shadow-elevation-1 backdrop-blur-sm md:flex md:items-center md:gap-0.5 transition-all duration-300 hover:shadow-elevation-2">
-              {sidebarNavLinks.map((link, index) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-300 hover-lift ${
-                    isActive(link.path)
-                      ? "bg-foreground text-background shadow-elevation-1"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                  }`}
-                  style={{
-                    animationDelay: `${index * 50}ms`
-                  }}
-                >
-                  <link.icon className="h-3.5 w-3.5 transition-transform duration-300 group-hover:scale-110" />
-                  <span className="hidden lg:inline transition-all duration-300">{link.label}</span>
-                </Link>
-              ))}
-            </div>
+            {/* Spacer for desktop */}
+            <div className="flex-1" />
 
             {/* Dark Mode Toggle */}
             <DarkModeToggle isDark={isDark} setIsDark={setIsDark} />
