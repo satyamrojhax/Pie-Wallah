@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Heart, Smile, Laugh, Eye, MessageSquare, FileText, ExternalLink } from "lucide-react";
 import { CommunityPost } from "@/services/communityService";
 import Comments from "./Comments";
@@ -107,6 +108,14 @@ const PostCard = ({ post }: { post: CommunityPost }) => {
                         src={attachment.url} 
                         alt={`Attachment ${index + 1}`}
                         className="w-full h-auto max-h-64 object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                        onLoad={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'block';
+                        }}
                       />
                     </div>
                   ) : attachment.type === 'videos' ? (
@@ -156,10 +165,10 @@ const PostCard = ({ post }: { post: CommunityPost }) => {
         <Comments postId={post._id} totalComments={post.total_comments} />
       </div>
 
-      {/* Image Modal */}
-      {selectedImage && (
+      {/* Image Modal - Rendered at document body level */}
+      {selectedImage && createPortal(
         <div 
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4"
           onClick={closeImageModal}
         >
           <div className="relative max-w-4xl max-h-full">
@@ -178,7 +187,8 @@ const PostCard = ({ post }: { post: CommunityPost }) => {
               </svg>
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
