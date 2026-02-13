@@ -785,7 +785,26 @@ const ProductionVideoPlayer: React.FC<ProductionVideoPlayerProps> = ({
         <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-10">
           <div className="text-center p-8 max-w-md">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-white mb-6">{error}</p>
+            <div className="text-white mb-6">
+              {error.includes('https://t.me/satyamrojha') ? (
+                <div>
+                  <p className="mb-2">Unable to play video. If you're experiencing issues, please refresh the page or try again later.</p>
+                  <p>
+                    For support, visit{' '}
+                    <a
+                      href="https://t.me/satyamrojha"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 underline"
+                    >
+                      https://t.me/satyamrojha
+                    </a>
+                  </p>
+                </div>
+              ) : (
+                <p>{error}</p>
+              )}
+            </div>
             <button
               onClick={retryPlayback}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 mx-auto transition-colors"

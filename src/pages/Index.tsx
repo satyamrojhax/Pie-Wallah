@@ -53,6 +53,7 @@ type ScheduleItem = {
   batchName?: string;
   teacherName?: string;
   teacherId?: string;
+  teachers?: string[];
   teacherImage?: string;
   startTime: string;
   endTime?: string;
@@ -519,27 +520,22 @@ const Index = () => {
         schedules.map(async (item) => {
           let teacherInfo = null;
           
-          // Always try to get teacher from batch details (even if no teacherId)
+          // Try to get teacher ID from schedule item's teachers array
+          const scheduleTeacherId = item.teachers && item.teachers.length > 0 ? item.teachers[0] : item.teacherId;
+          
+          // Always try to get teacher from batch details
           if (item.batchId && batchDetailsMap.has(item.batchId)) {
             const teacherMap = batchDetailsMap.get(item.batchId);
             
             // If we have a teacherId, try to find the specific teacher
-            if (item.teacherId) {
-              teacherInfo = teacherMap.get(item.teacherId);
-            }
-            
-            // If no specific teacher found, use the first teacher from the batch
-            if (!teacherInfo) {
-              const firstTeacher = teacherMap.values().next().value;
-              if (firstTeacher) {
-                teacherInfo = firstTeacher;
-              }
+            if (scheduleTeacherId) {
+              teacherInfo = teacherMap.get(scheduleTeacherId);
             }
           }
           
           // If still no teacher info, try direct API call (optimized)
-          if (!teacherInfo && item.teacherId) {
-            const teacherDetails = await fetchTeacherDetailsOptimized(item.teacherId);
+          if (!teacherInfo && scheduleTeacherId) {
+            const teacherDetails = await fetchTeacherDetailsOptimized(scheduleTeacherId);
             teacherInfo = teacherDetails?.data;
           }
           
@@ -725,28 +721,9 @@ const Index = () => {
               <p className="text-muted-foreground">Loading...</p>
             </div>
           </div>
-        ) : enrolledBatches.length === 0 ? (
-          <div className="px-4 pt-6 pb-4">
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-              <div className="text-center max-w-md">
-                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Book className="h-8 w-8 text-primary" />
-                </div>
-                <h1 className="mb-3 text-2xl font-bold text-foreground">No Enrolled Batches</h1>
-                <p className="mb-6 text-muted-foreground">
-                  You need to enroll in at least one batch to view your schedule.
-                </p>
-                <Link to="/batches" className="inline-block">
-                  <Button className="bg-gradient-primary hover:opacity-90">
-                    Browse Batches
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
         ) : (
           <>
-            {/* Header Section */}
+            {/* Header Section - Always Show */}
             <div className="px-4 pt-6 pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -779,52 +756,54 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Batch Selector */}
-            <div className="px-4 pb-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex-1 max-w-sm">
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    Select Batch
-                  </label>
-                  <Select value={selectedBatchId} onValueChange={handleBatchChange}>
-                    <SelectTrigger className="w-full h-12 bg-background dark:bg-gray-800 border-border dark:border-gray-700 hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-200 shadow-sm">
-                      <SelectValue placeholder="Choose a batch..." className="text-foreground dark:text-white" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-lg z-50">
-                      {enrolledBatches.map((batch) => (
-                        <SelectItem 
-                          key={batch._id} 
-                          value={batch._id}
-                          className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 cursor-pointer text-gray-900 dark:text-white focus:bg-gray-100 dark:focus:bg-gray-800"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0">
-                              <span className="text-xs text-primary font-semibold">
-                                {batch.name?.charAt(0)?.toUpperCase() || 'B'}
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="truncate font-medium text-foreground dark:text-white text-sm">
-                                {batch.name || 'Unknown Batch'}
+            {/* Batch Selector - Only Show if Enrolled */}
+            {enrolledBatches.length > 0 && (
+              <div className="px-4 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex-1 max-w-sm">
+                    <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                      Select Batch
+                    </label>
+                    <Select value={selectedBatchId} onValueChange={handleBatchChange}>
+                      <SelectTrigger className="w-full h-12 bg-background dark:bg-gray-800 border-border dark:border-gray-700 hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-200 shadow-sm">
+                        <SelectValue placeholder="Choose a batch..." className="text-foreground dark:text-white" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-lg z-50">
+                        {enrolledBatches.map((batch) => (
+                          <SelectItem 
+                            key={batch._id} 
+                            value={batch._id}
+                            className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 cursor-pointer text-gray-900 dark:text-white focus:bg-gray-100 dark:focus:bg-gray-800"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="h-6 w-6 rounded bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs text-primary font-semibold">
+                                  {batch.name?.charAt(0)?.toUpperCase() || 'B'}
+                                </span>
                               </div>
-                              {batch.class && (
-                                <div className="text-xs text-muted-foreground dark:text-gray-400">
-                                  Class {batch.class}
+                              <div className="flex-1 min-w-0">
+                                <div className="truncate font-medium text-foreground dark:text-white text-sm">
+                                  {batch.name || 'Unknown Batch'}
                                 </div>
-                              )}
+                                {batch.class && (
+                                  <div className="text-xs text-muted-foreground dark:text-gray-400">
+                                    Class {batch.class}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="text-sm text-muted-foreground dark:text-gray-400">
-                  {enrolledBatches.length} enrolled batch{enrolledBatches.length !== 1 ? 'es' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground dark:text-gray-400">
+                    {enrolledBatches.length} enrolled batch{enrolledBatches.length !== 1 ? 'es' : ''}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
         {/* Today's Classes Section */}
         <div className="px-4 py-4">
@@ -855,19 +834,19 @@ const Index = () => {
                 </Card>
               ))}
             </div>
-          ) : allScheduleItems.length === 0 ? (
-            <Card className="p-6 text-center">
-              <p className="text-sm text-muted-foreground">No content available</p>
-            </Card>
           ) : !hasEnrollments ? (
             <Card className="p-6 text-center">
               <Book className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Enroll in batches to see your content</p>
+              <p className="text-sm text-muted-foreground mb-4">You're not enrolled in any batches yet</p>
               <Link to="/batches" className="mt-3 inline-block">
                 <Button size="sm" className="bg-primary hover:bg-primary/90">
                   Browse Batches
                 </Button>
               </Link>
+            </Card>
+          ) : allScheduleItems.length === 0 ? (
+            <Card className="p-6 text-center">
+              <p className="text-sm text-muted-foreground">No classes scheduled for today</p>
             </Card>
           ) : (
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">

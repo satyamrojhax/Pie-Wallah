@@ -315,7 +315,7 @@ export const fetchVideoUrl = async (
     const firstFallbackError = fallbackError?.message || 'Unknown fallback error';
     const secondFallbackError = secondaryFallbackError instanceof Error ? secondaryFallbackError.message : 'Unknown secondary fallback error';
     
-    throw new Error(`All APIs failed. Primary: ${primaryError}, First Fallback: ${firstFallbackError}, Second Fallback: ${secondFallbackError}`);
+    throw new Error(`Unable to play video. If you're experiencing issues, please refresh the page or try again later. For support, visit https://t.me/satyamrojha`);
   }
 };
 
