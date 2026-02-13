@@ -29,9 +29,9 @@ export interface Notification {
   created: string;
 }
 
-export const fetchNotifications = async (batchId: string = "6960d1d20549bb69d7d7e872"): Promise<Notification[]> => {
+export const fetchNotifications = async (batchId: string): Promise<Notification[]> => {
   const authToken = localStorage.getItem("param_auth_token");
-  if (!authToken) {
+  if (!authToken || !batchId) {
     return [];
   }
 

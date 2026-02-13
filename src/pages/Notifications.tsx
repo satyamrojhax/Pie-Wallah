@@ -2,24 +2,64 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Bell, Clock, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { fetchNotifications, type Notification } from "@/services/notificationService";
+import { getEnrolledBatches } from "@/lib/enrollmentUtils";
+import { useNavigate } from "react-router-dom";
 
 const Notifications = () => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBatchId, setSelectedBatchId] = useState<string>("");
+  const [enrolledBatches, setEnrolledBatches] = useState<any[]>([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  // Get enrolled batches on mount
   useEffect(() => {
-    loadNotifications();
+    const loadEnrolledBatches = async () => {
+      try {
+        const enrolled = await getEnrolledBatches();
+        setEnrolledBatches(enrolled);
+        if (enrolled.length > 0 && !selectedBatchId) {
+          setSelectedBatchId(enrolled[0]._id);
+        }
+      } catch (error) {
+        setEnrolledBatches([]);
+      }
+    };
+    
+    loadEnrolledBatches();
   }, []);
 
+  // Handle initial load state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (selectedBatchId) {
+      loadNotifications();
+    }
+  }, [selectedBatchId]);
+
   const loadNotifications = async () => {
+    if (!selectedBatchId) return;
+    
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchNotifications();
+      const data = await fetchNotifications(selectedBatchId);
       setNotifications(data);
     } catch (err) {
       setError("Failed to load notifications");
@@ -27,6 +67,10 @@ const Notifications = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleBatchChange = (batchId: string) => {
+    setSelectedBatchId(batchId);
   };
 
   const formatDateTime = (dateString: string) => {
@@ -50,19 +94,114 @@ const Notifications = () => {
 
   const unreadCount = notifications.filter(n => !n.isSentNotification).length;
 
+  // Show loading state during initial load
+  if (isInitialLoad) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (enrolledBatches.length === 0) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <div className="text-center max-w-md">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Bell className="h-8 w-8 text-primary" />
+              </div>
+              <h1 className="mb-3 text-2xl font-bold text-foreground">No Enrolled Batches</h1>
+              <p className="mb-6 text-muted-foreground">
+                You need to enroll in at least one batch to view notifications.
+              </p>
+              <Button asChild className="bg-gradient-primary hover:opacity-90">
+                <a href="/batches">Browse Batches</a>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
+        <div className="flex items-center gap-2 sm:gap-4 mb-6">
+          <Button variant="ghost" size="sm" onClick={handleBack} className="rounded-full">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Notifications</h1>
+            <p className="text-sm text-muted-foreground">
+              View announcements from your enrolled batches
+            </p>
+          </div>
           {unreadCount > 0 && (
-            <Badge variant="destructive" className="ml-2">
+            <Badge variant="destructive">
               {unreadCount > 99 ? '99+' : unreadCount} unread
             </Badge>
           )}
+        </div>
+
+        {/* Batch Selector */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1 max-w-sm">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Select Batch
+              </label>
+              <Select value={selectedBatchId} onValueChange={handleBatchChange}>
+                <SelectTrigger className="w-full h-12">
+                  <SelectValue placeholder="Choose a batch..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {enrolledBatches.map((batch) => (
+                    <SelectItem 
+                      key={batch._id} 
+                      value={batch._id}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs text-primary font-semibold">
+                            {batch.name?.charAt(0)?.toUpperCase() || 'B'}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate font-medium text-foreground text-sm">
+                            {batch.name || 'Unknown Batch'}
+                          </div>
+                          {batch.class && (
+                            <div className="text-xs text-muted-foreground">
+                              Class {batch.class}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="text-sm text-muted-foreground">
+              {enrolledBatches.length} enrolled batch{enrolledBatches.length !== 1 ? 'es' : ''}
+            </div>
+          </div>
         </div>
 
         {/* Content */}

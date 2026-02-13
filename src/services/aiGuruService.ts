@@ -1,4 +1,5 @@
 import { getAuthToken, getCommonHeaders } from '@/lib/auth';
+import { AUTH_CONFIG } from '@/lib/auth';
 import "@/config/firebase";
 
 const NEBULA_BASE = 'https://api.penpencil.co/student-engagement-core/private/v1/nebula';
@@ -263,7 +264,7 @@ export const sendMessage = async (payload: SendMessagePayload): Promise<{ succes
         "authorization": `Bearer ${getAuthToken()}`,
         "randomid": crypto.randomUUID(),
         "client-type": "WEB",
-        "client-id": "5eb393ee95fab7468a79d189",
+        "client-id": AUTH_CONFIG.CLIENT_ID,
         "client-version": "300",
         "version": "0.0.1",
       },
@@ -293,7 +294,7 @@ export const sendMessageStream = async (
         "authorization": `Bearer ${getAuthToken()}`,
         "randomid": crypto.randomUUID(),
         "client-type": "WEB",
-        "client-id": "5eb393ee95fab7468a79d189",
+        "client-id": AUTH_CONFIG.CLIENT_ID,
         "client-version": "300",
         "version": "0.0.1",
         "accept": "application/json, text/plain, */*",

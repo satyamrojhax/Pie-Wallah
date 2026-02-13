@@ -1,4 +1,5 @@
 import { getAuthToken, getCommonHeaders } from '@/lib/auth';
+import { AUTH_CONFIG } from "@/lib/auth";
 import "@/config/firebase";
 import { saveUserProfile, trackUserBehavior, startUserSession, endUserSession } from './realtimeDatabaseService';
 
@@ -119,7 +120,7 @@ const internalFetch = async (url: string, options?: RequestInit): Promise<Respon
     headers: {
       ...getCommonHeaders(),
       "authorization": `Bearer ${token}`,
-      "client-id": "5eb393ee95fab7468a79d189",
+      "client-id": AUTH_CONFIG.CLIENT_ID,
       "client-type": "WEB",
       "x-sdk-version": "0.0.12",
       "randomid": crypto.randomUUID(),
