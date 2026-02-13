@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Book, Users, Video, Award, Radio, Bot, FileText, User } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowRight, Book, Users, Video, Award, Radio, Bot, FileText, User, PlayCircle, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { getStoredUserData } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +13,11 @@ import { useState, useEffect } from "react";
 import { fetchBatchDetails, fetchAnnouncements } from "@/services/batchService";
 import { fetchScheduleDetails } from "@/services/contentService";
 import { BatchesIcon } from "@/components/icons/CustomIcons";
+import { toast } from "sonner";
 import "@/config/firebase";
+
+const VIDEO_AUTHOR = "satyamrojhax";
+const VIDEO_PROVIDER = "penpencilvdo=true";
 
 const features = [
   {
@@ -59,16 +64,17 @@ type ScheduleItem = {
   duration?: string;
   tag?: string;
   lectureType?: string;
+  type?: "LECTURE" | "NOTES" | "DPP_QUIZ" | "DPP_PDF" | "BULK_SCHEDULE";
   videoDetails?: any;
   homeworkIds?: Array<{
-    _id: string;
-    topic: string;
-    note: string;
+    _id?: string;
+    topic?: string;
+    note?: string;
     attachmentIds?: Array<{
-      _id: string;
-      baseUrl: string;
-      key: string;
-      name: string;
+      _id?: string;
+      baseUrl?: string;
+      key?: string;
+      name?: string;
     }>;
     actions?: string[];
   }>;
@@ -408,6 +414,11 @@ const TimeUntilLive: React.FC<{ startTime: string }> = ({ startTime }) => {
 const Index = () => {
   const [userName, setUserName] = useState<string>("");
   const [userPhoto, setUserPhoto] = useState<string>("");
+  const [selectedBatchId, setSelectedBatchId] = useState<string>("");
+  const [enrolledBatches, setEnrolledBatches] = useState<any[]>([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [loadingVideoId, setLoadingVideoId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // Get user data
   useEffect(() => {
@@ -429,9 +440,38 @@ const Index = () => {
     }
   }, []);
 
+  // Get enrolled batches on mount
+  useEffect(() => {
+    const loadEnrolledBatches = async () => {
+      try {
+        const enrolled = await getEnrolledBatches();
+        setEnrolledBatches(enrolled);
+        if (enrolled.length > 0 && !selectedBatchId) {
+          setSelectedBatchId(enrolled[0]._id);
+        }
+      } catch (error) {
+        setEnrolledBatches([]);
+      }
+    };
+    
+    loadEnrolledBatches();
+  }, []);
+
+  // Handle initial load state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleBatchChange = (batchId: string) => {
+    setSelectedBatchId(batchId);
+  };
+
   // Enrolled batches
   const {
-    data: enrolledBatches = [],
+    data: enrolledBatchesQuery = [],
     isLoading: isEnrolledLoading,
   } = useQuery<EnrolledBatch[]>({
     queryKey: ["enrolled-batches"],
@@ -440,11 +480,8 @@ const Index = () => {
     gcTime: 1000 * 60 * 60, // Keep in memory for 1 hour
   });
 
-  const enrolledBatchIds = enrolledBatches.map((b) => b._id).filter(Boolean);
-  const hasEnrollments = enrolledBatchIds.length > 0;
-  
-  // If user has multiple batches, only use the first one for today's schedule
-  const primaryBatchId = enrolledBatchIds.length > 0 ? [enrolledBatchIds[0]] : enrolledBatchIds;
+  const enrolledBatchIds = selectedBatchId ? [selectedBatchId] : [];
+  const hasEnrollments = enrolledBatches.length > 0;
 
   // Today's schedule with teacher details
   const {
@@ -452,14 +489,14 @@ const Index = () => {
     isLoading: isScheduleLoading,
     refetch: refetchSchedule,
   } = useQuery<ScheduleItem[]>({
-    queryKey: ["todays-schedule", primaryBatchId, "with-teachers"],
+    queryKey: ["todays-schedule", enrolledBatchIds, "with-teachers"],
     queryFn: async () => {
-      const schedules = await fetchTodaysSchedule(primaryBatchId);
+      const schedules = await fetchTodaysSchedule(enrolledBatchIds);
       
       // Fetch batch details to get teacher information (optimized with cache)
       const batchDetailsMap = new Map();
       await Promise.all(
-        primaryBatchId.map(async (batchId) => {
+        enrolledBatchIds.map(async (batchId) => {
           const batchDetails = await fetchBatchDetailsOptimized(batchId);
           
           if (batchDetails && batchDetails.subjects) {
@@ -533,18 +570,18 @@ const Index = () => {
     status: normalizeStatus(item.status) || getStatus(item.startTime, item.endTime),
   }));
 
-  // Get live classes
-  const liveClasses = itemsWithStatus.filter((item) => item.status === "live");
-  const upcomingClasses = itemsWithStatus.filter((item) => item.status === "upcoming");
-  const todayClasses = [...liveClasses, ...upcomingClasses].slice(0, 6);
+  // Get all schedule items (not filtered by status)
+  const allScheduleItems = itemsWithStatus;
 
   const handleJoinLive = async (item: ScheduleItem) => {
     if (!item.batchId) return;
 
+    setLoadingVideoId(item._id);
     try {
       // First try to use existing meetingUrl
       if (item.meetingUrl) {
         window.open(item.meetingUrl, "_blank");
+        setLoadingVideoId(null);
         return;
       }
 
@@ -554,10 +591,43 @@ const Index = () => {
 
       if (findKey && item.batchId) {
         // Navigate to video player page with new URL format
-        window.location.href = `/watch?piewallah=video&author=satyamrojhax&batchId=${item.batchId}&subjectId=${subjectId}&childId=${findKey}&penpencilvdo=true`;
+        navigate(`/watch?piewallah=video&author=${VIDEO_AUTHOR}&batchId=${item.batchId}&subjectId=${subjectId}&childId=${findKey}&${VIDEO_PROVIDER}`);
+      } else {
+        toast.error("Video details not available");
       }
     } catch (error) {
-      console.error("Failed to join live session:", error);
+      toast.error("Failed to join live session. Please try again.");
+    } finally {
+      setLoadingVideoId(null);
+    }
+  };
+
+  const handleWatchRecording = async (item: ScheduleItem) => {
+    if (!item.batchId) return;
+
+    setLoadingVideoId(item._id);
+    try {
+      // First try to use existing recordingUrl
+      if (item.recordingUrl) {
+        window.open(item.recordingUrl, "_blank");
+        setLoadingVideoId(null);
+        return;
+      }
+
+      // Try to get video details and use new API
+      const findKey = item.videoDetails?.findKey || item.videoDetails?._id || item._id;
+      const subjectId = (item as any).subjectId?._id || (item as any).subjectId || (item as any).batchSubjectId || "unknown";
+
+      if (findKey && item.batchId) {
+        // Navigate to video player page with new URL format
+        navigate(`/watch?piewallah=video&author=${VIDEO_AUTHOR}&batchId=${item.batchId}&subjectId=${subjectId}&childId=${findKey}&${VIDEO_PROVIDER}`);
+      } else {
+        toast.error("Recording not available yet");
+      }
+    } catch (error) {
+      toast.error("Failed to load recording. Please try again.");
+    } finally {
+      setLoadingVideoId(null);
     }
   };
 
@@ -647,38 +717,114 @@ const Index = () => {
 
       {/* Mobile View - New Design */}
       <div className="md:hidden">
-        {/* Header Section */}
-        <div className="px-4 pt-6 pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-foreground">
-                Hello, {userName} 👋
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Let's continue your learning journey
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </p>
+        {/* Show loading state during initial load */}
+        {isInitialLoad ? (
+          <div className="px-4 pt-6 pb-4">
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+              <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mb-4"></div>
+              <p className="text-muted-foreground">Loading...</p>
             </div>
-            <Link to="/profile" className="ml-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                {userPhoto ? (
-                  <img
-                    src={userPhoto}
-                    alt="Profile"
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                    }}
-                  />
-                ) : null}
-                <User className={`h-6 w-6 text-primary ${userPhoto ? 'hidden' : ''}`} />
-              </div>
-            </Link>
           </div>
-        </div>
+        ) : enrolledBatches.length === 0 ? (
+          <div className="px-4 pt-6 pb-4">
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+              <div className="text-center max-w-md">
+                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <Book className="h-8 w-8 text-primary" />
+                </div>
+                <h1 className="mb-3 text-2xl font-bold text-foreground">No Enrolled Batches</h1>
+                <p className="mb-6 text-muted-foreground">
+                  You need to enroll in at least one batch to view your schedule.
+                </p>
+                <Link to="/batches" className="inline-block">
+                  <Button className="bg-gradient-primary hover:opacity-90">
+                    Browse Batches
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Header Section */}
+            <div className="px-4 pt-6 pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-foreground">
+                    Hello, {userName} 👋
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Let's continue your learning journey
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+                <Link to="/profile" className="ml-4">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                    {userPhoto ? (
+                      <img
+                        src={userPhoto}
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <User className={`h-6 w-6 text-primary ${userPhoto ? 'hidden' : ''}`} />
+                  </div>
+                </Link>
+              </div>
+            </div>
+
+            {/* Batch Selector */}
+            <div className="px-4 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex-1 max-w-sm">
+                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                    Select Batch
+                  </label>
+                  <Select value={selectedBatchId} onValueChange={handleBatchChange}>
+                    <SelectTrigger className="w-full h-12 bg-background dark:bg-gray-800 border-border dark:border-gray-700 hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-200 shadow-sm">
+                      <SelectValue placeholder="Choose a batch..." className="text-foreground dark:text-white" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-lg z-50">
+                      {enrolledBatches.map((batch) => (
+                        <SelectItem 
+                          key={batch._id} 
+                          value={batch._id}
+                          className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 cursor-pointer text-gray-900 dark:text-white focus:bg-gray-100 dark:focus:bg-gray-800"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs text-primary font-semibold">
+                                {batch.name?.charAt(0)?.toUpperCase() || 'B'}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="truncate font-medium text-foreground dark:text-white text-sm">
+                                {batch.name || 'Unknown Batch'}
+                              </div>
+                              {batch.class && (
+                                <div className="text-xs text-muted-foreground dark:text-gray-400">
+                                  Class {batch.class}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="text-sm text-muted-foreground dark:text-gray-400">
+                  {enrolledBatches.length} enrolled batch{enrolledBatches.length !== 1 ? 'es' : ''}
+                </div>
+              </div>
+            </div>
 
         {/* Today's Classes Section */}
         <div className="px-4 py-4">
@@ -709,14 +855,14 @@ const Index = () => {
                 </Card>
               ))}
             </div>
-          ) : todayClasses.length === 0 ? (
+          ) : allScheduleItems.length === 0 ? (
             <Card className="p-6 text-center">
-              <p className="text-sm text-muted-foreground">No classes scheduled for today</p>
+              <p className="text-sm text-muted-foreground">No content available</p>
             </Card>
           ) : !hasEnrollments ? (
             <Card className="p-6 text-center">
               <Book className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Enroll in batches to see your classes</p>
+              <p className="text-sm text-muted-foreground">Enroll in batches to see your content</p>
               <Link to="/batches" className="mt-3 inline-block">
                 <Button size="sm" className="bg-primary hover:bg-primary/90">
                   Browse Batches
@@ -725,7 +871,7 @@ const Index = () => {
             </Card>
           ) : (
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-              {todayClasses.map((item) => (
+              {allScheduleItems.slice(0, 10).map((item) => (
                 <Card
                   key={item._id}
                   className="flex-shrink-0 w-64 p-4 border-border/60 bg-card/80 shadow-sm hover:shadow-md transition-all"
@@ -761,20 +907,25 @@ const Index = () => {
                     </div>
                   </div>
                   <div className="text-xs text-muted-foreground mb-3">
-                    {item.status === "upcoming" ? (
-                      <div>
-                        <TimeUntilLive startTime={item.startTime} />
-                        <div className="text-muted-foreground">
-                          {formatTime(item.startTime)}
-                          {item.endTime && ` - ${formatTime(item.endTime)}`}
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {formatTime(item.startTime)}
-                        {item.endTime && ` - ${formatTime(item.endTime)}`}
-                      </>
-                    )}
+                    {/* Only show countdown/time when no video content or material is available */}
+                    {!(item.homeworkIds && item.homeworkIds.length > 0) &&
+                      !(item.videoDetails || item.duration || item.videoDetails?.duration || item.meetingUrl || item.recordingUrl) &&
+                      !(item.tag === "Live" && item.lectureType === "LIVE") && (
+                        item.status === "upcoming" ? (
+                          <div>
+                            <TimeUntilLive startTime={item.startTime} />
+                            <div className="text-muted-foreground">
+                              {formatTime(item.startTime)}
+                              {item.endTime && ` - ${formatTime(item.endTime)}`}
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {formatTime(item.startTime)}
+                            {item.endTime && ` - ${formatTime(item.endTime)}`}
+                          </>
+                        )
+                      )}
                   </div>
                   
                   {/* Material Access */}
@@ -795,25 +946,55 @@ const Index = () => {
                     );
                   })()}
                   
-                  {/* Show Join Live button for LIVE lectures that are currently live or tagged as Live */}
-                  {((item.tag === "Live" && item.lectureType === "LIVE") || item.status === "live") && (
-                    <Button
-                      size="sm"
-                      className="w-full bg-red-500 hover:bg-red-600 text-white"
-                      onClick={() => handleJoinLive(item)}
-                    >
-                      Join Now
-                    </Button>
-                  )}
+                  {/* Video Buttons - Show only for LECTURE type items with video content */}
+                  {((item.type === 'LECTURE') || (!item.type && (item.videoDetails || item.lectureType === "LIVE" || item.lectureType === "RECORDED"))) && (item.videoDetails || item.duration || item.videoDetails?.duration || item.meetingUrl || item.recordingUrl ||
+                    (item.tag === "Live" && item.lectureType === "LIVE")) && (
+                      // Show Join Live button for LIVE lectures that are currently live or tagged as Live
+                      item.tag === "Live" && item.lectureType === "LIVE" ? (
+                        <Button
+                          className="w-full bg-gradient-primary min-w-0 text-xs sm:text-sm"
+                          size="sm"
+                          onClick={() => handleJoinLive(item)}
+                          disabled={loadingVideoId === item._id}
+                        >
+                          {loadingVideoId === item._id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Radio className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                              <span className="hidden sm:inline">Join Live</span><span className="sm:hidden">Live</span>
+                            </>
+                          )}
+                        </Button>
+                      ) : (item.status === "completed" || item.tag === "Ended" || item.lectureType === "RECORDED") ? (
+                        // Show Watch Recording for completed or ended lectures
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full min-w-0 text-xs sm:text-sm"
+                          onClick={() => handleWatchRecording(item)}
+                          disabled={loadingVideoId === item._id}
+                        >
+                          {loadingVideoId === item._id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <PlayCircle className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                              <span className="hidden sm:inline">Watch Recording</span><span className="sm:hidden">Recording</span>
+                            </>
+                          )}
+                        </Button>
+                      ) : null
+                    )}
                 </Card>
               ))}
             </div>
           )}
         </div>
 
-        {/* Quick Actions Section */}
+        {/* Quick Access Section */}
         <div className="px-4 py-4">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Quick Access</h2>
           <div className="grid grid-cols-2 gap-3">
             <Link to="/batches">
               <Card className="p-4 flex flex-col items-center justify-center gap-2 hover:shadow-md transition-all cursor-pointer group">
@@ -853,6 +1034,8 @@ const Index = () => {
             </p>
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

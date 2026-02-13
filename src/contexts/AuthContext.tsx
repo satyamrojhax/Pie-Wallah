@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { isTokenValid, logout, getStoredUserData, handleAuthError } from "@/lib/auth.js";
-import "@/config/firebase";
+import { initializeAuthListener, getCurrentFirebaseUser } from "@/config/firebase";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -33,16 +33,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const checkAuth = async () => {
     try {
-      // Check if token is valid
-      if (isTokenValid()) {
-        const userData = getStoredUserData();
-        setIsAuthenticated(true);
-        setUser(userData);
+      // First check Firebase auth state (primary source for mobile persistence)
+      const firebaseUser = getCurrentFirebaseUser();
+      
+      if (firebaseUser) {
+        // Firebase user exists, verify token is also valid
+        if (isTokenValid()) {
+          const userData = getStoredUserData();
+          setIsAuthenticated(true);
+          setUser(userData);
+        } else {
+          // Firebase user exists but token is invalid, refresh or logout
+          logout();
+          setIsAuthenticated(false);
+          setUser(null);
+        }
       } else {
-        // Token is expired or invalid, logout
-        logout();
-        setIsAuthenticated(false);
-        setUser(null);
+        // No Firebase user, check localStorage (fallback)
+        if (isTokenValid()) {
+          const userData = getStoredUserData();
+          setIsAuthenticated(true);
+          setUser(userData);
+        } else {
+          // Not authenticated
+          setIsAuthenticated(false);
+          setUser(null);
+        }
       }
     } catch (error) {
       setIsAuthenticated(false);
@@ -68,10 +84,44 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setUser(null);
   };
 
-  // Only check auth on initial mount, not on every render
+  // Initialize Firebase auth state listener on mount
   useEffect(() => {
-    // Check authentication on mount only
-    checkAuth();
+    // Set up Firebase auth state listener
+    const unsubscribe = initializeAuthListener((firebaseUser) => {
+      if (firebaseUser) {
+        // Firebase user exists, check if token is valid
+        if (isTokenValid()) {
+          const userData = getStoredUserData();
+          setIsAuthenticated(true);
+          setUser(userData);
+          setIsLoading(false);
+          setIsInitialAuthCheck(false);
+        } else {
+          // Firebase user exists but token expired
+          logout();
+          setIsAuthenticated(false);
+          setUser(null);
+          setIsLoading(false);
+          setIsInitialAuthCheck(false);
+        }
+      } else {
+        // No Firebase user, check localStorage
+        if (isTokenValid()) {
+          const userData = getStoredUserData();
+          setIsAuthenticated(true);
+          setUser(userData);
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+        setIsLoading(false);
+        setIsInitialAuthCheck(false);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Handle online/offline events - preserve tokens in localStorage

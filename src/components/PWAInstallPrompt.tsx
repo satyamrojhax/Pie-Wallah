@@ -93,17 +93,17 @@ const PWAInstallPrompt: React.FC = () => {
 
     return (
         <div className="fixed bottom-0 left-0 right-0 z-50 transform transition-all duration-300 ease-in-out">
-            <div className="bg-gradient-to-r from-primary to-primary/90 text-white shadow-2xl border-t border-white/20">
+            <div className="bg-background dark:bg-gray-900 border-border dark:border-gray-700 border-t shadow-2xl">
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between gap-4">
                         {/* App Info */}
                         <div className="flex items-center gap-3 flex-1">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
-                                <Smartphone className="h-6 w-6" />
+                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20">
+                                <Smartphone className="h-6 w-6 text-primary" />
                             </div>
                             <div className="flex-1">
-                                <h3 className="font-semibold text-white mb-1">Install Pie Wallah</h3>
-                                <p className="text-sm text-white/80">Get the full app experience - install for offline access & faster performance</p>
+                                <h3 className="font-semibold text-foreground dark:text-white mb-1">Install Pie Wallah</h3>
+                                <p className="text-sm text-muted-foreground dark:text-gray-400">Get the full app experience - install for offline access & faster performance</p>
                             </div>
                         </div>
                         
@@ -112,7 +112,7 @@ const PWAInstallPrompt: React.FC = () => {
                             <Button
                                 onClick={handleInstallClick}
                                 size="sm"
-                                className="bg-white text-primary hover:bg-white/90 font-semibold px-4 py-2 h-auto"
+                                className="bg-primary hover:bg-primary/90 text-white font-semibold px-4 py-2 h-auto dark:bg-primary dark:hover:bg-primary/90"
                             >
                                 <Download className="mr-2 h-4 w-4" />
                                 Install
@@ -122,7 +122,7 @@ const PWAInstallPrompt: React.FC = () => {
                                 onClick={handleDismiss}
                                 size="sm"
                                 variant="ghost"
-                                className="text-white/80 hover:text-white hover:bg-white/10 p-2 h-auto"
+                                className="text-muted-foreground dark:text-gray-400 hover:text-foreground dark:hover:text-white hover:bg-accent dark:hover:bg-gray-800 p-2 h-auto"
                             >
                                 <X className="h-4 w-4" />
                             </Button>

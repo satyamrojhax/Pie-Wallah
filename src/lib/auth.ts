@@ -1,5 +1,7 @@
 import { networkDetector } from './networkDetector';
 import "@/config/firebase";
+import { signOut } from "firebase/auth";
+import { auth } from "@/config/firebase";
 
 // Function to generate a random UUID
 const generateRandomId = (): string => {
@@ -275,6 +277,15 @@ export const refreshAuthToken = async (): Promise<boolean> => {
 };
 
 export const logout = (): void => {
+    // Sign out from Firebase Auth
+    try {
+        signOut(auth).catch((error) => {
+            console.warn('Firebase signout failed:', error);
+        });
+    } catch (error) {
+        console.warn('Firebase signout error:', error);
+    }
+    
     // Clear both localStorage and sessionStorage
     localStorage.removeItem("param_auth_token");
     localStorage.removeItem("refresh_token");

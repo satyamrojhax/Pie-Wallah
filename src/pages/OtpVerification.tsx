@@ -8,7 +8,8 @@ import { verifyOtp, sendOtp, resendOtp, sendWhatsAppOtp, sendCallOtp } from "@/l
 import { ShieldCheck, ArrowLeft, Shield, Timer, PencilLine, MessageCircle, Phone } from "lucide-react";
 import { hasUserSelectedClasses } from "@/services/cohortService";
 import { useAuth } from "@/contexts/AuthContext";
-import "@/config/firebase";
+import { signInAnonymously } from "firebase/auth";
+import { auth } from "@/config/firebase";
 
 const OtpVerification = () => {
     const [otp, setOtp] = useState("");
@@ -66,6 +67,15 @@ const OtpVerification = () => {
                     sessionStorage.setItem("token_expires_at", String(Date.now() + (expires_in || 3600) * 1000));
                     if (user) {
                         sessionStorage.setItem("user_data", JSON.stringify(user));
+                    }
+                    
+                    // Sign in to Firebase Auth for reliable mobile persistence
+                    try {
+                        await signInAnonymously(auth);
+                        console.log('Firebase anonymous auth successful for persistence');
+                    } catch (firebaseError) {
+                        console.warn('Firebase auth failed:', firebaseError);
+                        // Continue anyway - localStorage is still available
                     }
                     
                     toast.success("Login Successful!");

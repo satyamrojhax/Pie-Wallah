@@ -266,7 +266,6 @@ export const trackUserBehavior = async (userId: string, action: string, page: st
       userId,
       action,
       page,
-      data: data ? cleanData(data) : undefined,
       timestamp: Date.now(),
       sessionId: getSessionId(),
       deviceInfo: {
@@ -279,6 +278,14 @@ export const trackUserBehavior = async (userId: string, action: string, page: st
         query: window.location.search,
       },
     };
+
+    // Only add data property if it exists and is not empty after cleaning
+    if (data) {
+      const cleanedData = cleanData(data);
+      if (Object.keys(cleanedData).length > 0) {
+        (behavior as any).data = cleanedData;
+      }
+    }
 
     await set(newBehaviorRef, behavior);
   } catch (error) {

@@ -162,31 +162,32 @@ const Notifications = () => {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex-1 max-w-sm">
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
                 Select Batch
               </label>
               <Select value={selectedBatchId} onValueChange={handleBatchChange}>
-                <SelectTrigger className="w-full h-12">
-                  <SelectValue placeholder="Choose a batch..." />
+                <SelectTrigger className="w-full h-12 bg-background dark:bg-gray-800 border-border dark:border-gray-700 hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-200 shadow-sm">
+                  <SelectValue placeholder="Choose a batch..." className="text-foreground dark:text-white" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-lg z-50">
                   {enrolledBatches.map((batch) => (
                     <SelectItem 
                       key={batch._id} 
                       value={batch._id}
+                      className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 cursor-pointer text-gray-900 dark:text-white focus:bg-gray-100 dark:focus:bg-gray-800"
                     >
                       <div className="flex items-center gap-2">
-                        <div className="h-6 w-6 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <div className="h-6 w-6 rounded bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs text-primary font-semibold">
                             {batch.name?.charAt(0)?.toUpperCase() || 'B'}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="truncate font-medium text-foreground text-sm">
+                          <div className="truncate font-medium text-foreground dark:text-white text-sm">
                             {batch.name || 'Unknown Batch'}
                           </div>
                           {batch.class && (
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground dark:text-gray-400">
                               Class {batch.class}
                             </div>
                           )}
@@ -198,7 +199,7 @@ const Notifications = () => {
               </Select>
             </div>
             
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground dark:text-gray-400">
               {enrolledBatches.length} enrolled batch{enrolledBatches.length !== 1 ? 'es' : ''}
             </div>
           </div>

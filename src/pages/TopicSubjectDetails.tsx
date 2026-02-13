@@ -436,6 +436,14 @@ const TopicSubjectDetails = () => {
   const [completedLectures, setCompletedLectures] = useState<Set<string>>(new Set());
   const [showLectureMenu, setShowLectureMenu] = useState<string | null>(null);
   const [lecturesPage, setLecturesPage] = useState(1);
+  
+  // First-time user preview states
+  const [showNotesPreview, setShowNotesPreview] = useState(() => {
+    return !localStorage.getItem('notes-preview-seen');
+  });
+  const [showDppPreview, setShowDppPreview] = useState(() => {
+    return !localStorage.getItem('dpp-preview-seen');
+  });
   const [notesPage, setNotesPage] = useState(1);
   const [allLectures, setAllLectures] = useState<Lecture[]>([]);
   const [allNotes, setAllNotes] = useState<Note[]>([]);
@@ -1088,6 +1096,42 @@ const TopicSubjectDetails = () => {
 
           {/* NOTES TAB */}
           <TabsContent value="notes">
+            {/* First-time user preview card */}
+            {showNotesPreview && (
+              <Card className="mb-6 border-primary/20 bg-primary/5 dark:bg-primary/10">
+                <div className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/20">
+                      <FileText className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground mb-2">How to use Notes</h3>
+                      <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                        <div className="flex items-center gap-2">
+                          <Eye className="h-4 w-4 text-primary" />
+                          <span><strong>PDF Button:</strong> Click to view the notes in your browser</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Download className="h-4 w-4 text-primary" />
+                          <span><strong>Download Button:</strong> Click to save the PDF to your device</span>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setShowNotesPreview(false);
+                          localStorage.setItem('notes-preview-seen', 'true');
+                        }}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        Got it!
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+            
             {notesLoading ? (
               renderLoadingState()
             ) : notesError ? (
@@ -1167,6 +1211,42 @@ const TopicSubjectDetails = () => {
 
           {/* DPP TAB */}
           <TabsContent value="dpp">
+            {/* First-time user preview card */}
+            {showDppPreview && (
+              <Card className="mb-6 border-primary/20 bg-primary/5 dark:bg-primary/10">
+                <div className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/20">
+                      <ClipboardList className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground mb-2">How to use DPP (Daily Practice Problems)</h3>
+                      <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                        <div className="flex items-center gap-2">
+                          <Eye className="h-4 w-4 text-primary" />
+                          <span><strong>PDF Button:</strong> Click to view practice problems in your browser</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Download className="h-4 w-4 text-primary" />
+                          <span><strong>Download Button:</strong> Click to save the DPP PDF to your device</span>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setShowDppPreview(false);
+                          localStorage.setItem('dpp-preview-seen', 'true');
+                        }}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        Got it!
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+            
             {dppLoading ? (
               renderLoadingState()
             ) : dppError ? (

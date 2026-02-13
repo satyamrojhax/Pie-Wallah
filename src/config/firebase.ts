@@ -1,6 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
+import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, User } from "firebase/auth";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -21,4 +22,39 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 
-export { app, analytics };
+// Initialize Firebase Auth with LOCAL persistence for reliable mobile storage
+let auth: ReturnType<typeof getAuth>;
+
+try {
+  auth = getAuth(app);
+  // Set persistence to LOCAL for reliable storage on mobile devices
+  // This ensures auth state persists even when app is closed on mobile
+  setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.warn('Failed to set auth persistence:', error);
+  });
+} catch (error) {
+  console.warn('Firebase Auth already initialized or failed to initialize:', error);
+  auth = getAuth(app);
+}
+
+// Auth state change listener
+let authStateChangeUnsubscribe: (() => void) | null = null;
+
+export const initializeAuthListener = (callback: (user: User | null) => void): (() => void) => {
+  if (authStateChangeUnsubscribe) {
+    authStateChangeUnsubscribe();
+  }
+  authStateChangeUnsubscribe = onAuthStateChanged(auth, callback);
+  return () => {
+    if (authStateChangeUnsubscribe) {
+      authStateChangeUnsubscribe();
+      authStateChangeUnsubscribe = null;
+    }
+  };
+};
+
+export const getCurrentFirebaseUser = (): User | null => {
+  return auth.currentUser;
+};
+
+export { app, analytics, auth };

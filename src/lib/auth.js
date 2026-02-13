@@ -7,6 +7,10 @@ const generateRandomId = () => {
     });
 };
 
+// Firebase Auth import
+import { signOut } from "firebase/auth";
+import { auth } from "@/config/firebase";
+
 export const AUTH_CONFIG = {
     BASE_URL_V1: "https://api.penpencil.co/v1",
     BASE_URL_V3: "https://api.penpencil.co/v3",
@@ -281,6 +285,15 @@ export const refreshAuthToken = async () => {
 };
 
 export const logout = () => {
+    // Sign out from Firebase Auth
+    try {
+        signOut(auth).catch((error) => {
+            console.warn('Firebase signout failed:', error);
+        });
+    } catch (error) {
+        console.warn('Firebase signout error:', error);
+    }
+    
     // Clear both localStorage and sessionStorage
     localStorage.removeItem("param_auth_token");
     localStorage.removeItem("refresh_token");
