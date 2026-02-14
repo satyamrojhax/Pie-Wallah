@@ -12,7 +12,7 @@ const Footer: React.FC = () => {
             <div className="container mx-auto px-6">
                 <div className="text-center">
                     <p className="text-sm text-muted-foreground">
-                        <span>Designed and developed by </span>
+                        <span>Designed and Developed by </span>
                         <a
                             href="https://instagram.com/satyamrojha.dev"
                             onClick={openInstagram}
