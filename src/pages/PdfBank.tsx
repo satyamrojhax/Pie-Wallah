@@ -189,7 +189,7 @@ const PdfBank: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-24 md:pb-0" style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden', WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>
+    <div className="min-h-screen bg-background pb-24 md:pb-0" style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>
       <Navbar />
 
       {/* Main Content */}
