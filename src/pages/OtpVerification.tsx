@@ -14,7 +14,7 @@ import { auth } from "@/config/firebase";
 const OtpVerification = () => {
     const [otp, setOtp] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [resendTimer, setResendTimer] = useState(10);
+    const [resendTimer, setResendTimer] = useState(30);
     const location = useLocation();
     const navigate = useNavigate();
     const mobileNumber = location.state?.mobileNumber;
@@ -106,7 +106,7 @@ const OtpVerification = () => {
         try {
             await resendOtp(mobileNumber);
             toast.success("OTP Resent via SMS!");
-            setResendTimer(20);
+            setResendTimer(30);
         } catch (error) {
             toast.error("Failed to resend OTP");
         } finally {
@@ -136,7 +136,7 @@ const OtpVerification = () => {
         try {
             await sendCallOtp(mobileNumber);
             toast.success("OTP Sent via Call!");
-            setResendTimer(50);
+            setResendTimer(30);
         } catch (error) {
             toast.error("Failed to send OTP via Call");
         } finally {
